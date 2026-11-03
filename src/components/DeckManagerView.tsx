@@ -213,7 +213,7 @@ export const DeckManagerView: React.FC<DeckManagerViewProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Last Minute Viva Top 30"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                  className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                 />
               </div>
 
@@ -226,7 +226,7 @@ export const DeckManagerView: React.FC<DeckManagerViewProps> = ({
                   value={folder}
                   onChange={(e) => setFolder(e.target.value)}
                   placeholder="e.g. Exam Cramming"
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                  className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                 />
               </div>
 
@@ -237,7 +237,7 @@ export const DeckManagerView: React.FC<DeckManagerViewProps> = ({
                 <select
                   value={selectedUnit}
                   onChange={(e) => setSelectedUnit(e.target.value as 'all' | UnitNumber)}
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                  className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
                 >
                   <option value="all">All 5 Units (204 Questions)</option>
                   <option value={1}>Unit 1: Physical Layer & Topologies</option>
@@ -257,7 +257,7 @@ export const DeckManagerView: React.FC<DeckManagerViewProps> = ({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief description for this deck..."
                   rows={2}
-                  className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
+                  className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 resize-none"
                 />
               </div>
 

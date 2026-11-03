@@ -76,12 +76,12 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/60 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[92dvh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-neutral-100">
               Question Manager & Importer
             </h3>
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
@@ -97,20 +97,20 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </div>
 
         {/* Tab navigation */}
-        <div className="flex border-b border-neutral-200 dark:border-neutral-800 px-6 bg-neutral-50/50 dark:bg-neutral-950/30">
+        <div className="flex border-b border-neutral-200 dark:border-neutral-800 px-3 sm:px-6 bg-neutral-50/50 dark:bg-neutral-950/30 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('import')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 transition ${
+            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs font-medium border-b-2 transition shrink-0 ${
               activeTab === 'import'
                 ? 'border-neutral-900 dark:border-neutral-100 text-neutral-900 dark:text-neutral-100'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
             }`}
           >
-            Paste / Upload 200+ Questions
+            Paste / Upload Questions
           </button>
           <button
             onClick={() => setActiveTab('export')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 transition ${
+            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs font-medium border-b-2 transition shrink-0 ${
               activeTab === 'export'
                 ? 'border-neutral-900 dark:border-neutral-100 text-neutral-900 dark:text-neutral-100'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
@@ -120,7 +120,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('reset')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 transition ${
+            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs font-medium border-b-2 transition shrink-0 ${
               activeTab === 'reset'
                 ? 'border-neutral-900 dark:border-neutral-100 text-neutral-900 dark:text-neutral-100'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
@@ -131,7 +131,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {activeTab === 'import' && (
             <div className="space-y-4">
               <div className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
@@ -167,12 +167,12 @@ Q: What is the transmission time in CSMA/CD?
 A: T_trans must be greater than or equal to 2 * T_prop to ensure collision detection.
 Unit: 2
 Topic: MAC Protocols`}
-                rows={9}
-                className="w-full text-xs font-mono p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600"
+                rows={8}
+                className="w-full text-base sm:text-xs font-mono p-3 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600"
               />
 
               {/* Upload file alternative */}
-              <div className="flex items-center justify-between text-xs pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs pt-1 gap-1.5">
                 <label className="cursor-pointer inline-flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 font-medium">
                   <IconUpload size={14} />
                   <span>Upload .txt or .json file</span>
@@ -192,18 +192,18 @@ Topic: MAC Protocols`}
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-end gap-3">
+              <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
                 <button
                   onClick={() => handleDoImport('append')}
                   disabled={parsedPreview.length === 0}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 disabled:opacity-50 transition"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 disabled:opacity-50 transition"
                 >
                   Append to Existing ({parsedPreview.length} Cards)
                 </button>
                 <button
                   onClick={() => handleDoImport('replace')}
                   disabled={parsedPreview.length === 0}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 transition"
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 transition"
                 >
                   Replace All Cards ({parsedPreview.length} Cards)
                 </button>

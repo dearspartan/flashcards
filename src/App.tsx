@@ -361,7 +361,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Body Content based on View Mode */}
-      <main className="flex-1 flex flex-col justify-center max-w-7xl w-full mx-auto p-4 sm:p-6">
+      <main className="flex-1 flex flex-col justify-start sm:justify-center max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-3 sm:py-6 safe-pb">
         {/* Active Deck Header Indicator */}
         {activeDeck && activeDeck.id !== 'deck-all' && (
           <div className="max-w-3xl mx-auto w-full mb-3 flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">

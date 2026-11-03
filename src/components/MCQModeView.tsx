@@ -249,7 +249,7 @@ export const MCQModeView: React.FC<MCQModeViewProps> = ({
               key={idx}
               onClick={() => handleSelectOption(option)}
               disabled={isAnswered}
-              className={`w-full p-4 rounded-xl border text-left text-xs sm:text-sm font-medium transition flex items-start gap-3.5 select-none ${optionStyles}`}
+              className={`w-full p-3.5 sm:p-4 rounded-xl border text-left text-xs sm:text-sm font-medium transition flex items-start gap-3 select-none active:scale-[0.99] touch-manipulation min-h-[48px] ${optionStyles}`}
             >
               <span className="w-6 h-6 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center font-mono text-xs text-neutral-600 dark:text-neutral-400 shrink-0 font-bold">
                 {letter}

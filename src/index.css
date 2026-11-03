@@ -8,14 +8,17 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 3D Card Flip Animation System */
 .flip-card-container {
-  perspective: 1400px;
+  perspective: 1200px;
+  touch-action: pan-y; /* Allow vertical scroll while capturing horizontal swipe */
 }
 
 .flip-card-inner {
@@ -40,6 +43,8 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   border-radius: 1rem;
 }
 
@@ -49,8 +54,8 @@ body {
 
 /* Custom scrollbar for minimalist look */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -61,6 +66,20 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(140, 140, 140, 0.4);
+}
+
+/* Hide scrollbar utility for clean mobile scrolling tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile safe area padding utility */
+.safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
 }
 
 @keyframes fadeIn {

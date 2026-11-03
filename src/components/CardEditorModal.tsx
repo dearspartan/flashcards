@@ -75,22 +75,22 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/60 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[92dvh]">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+          <h3 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-neutral-100">
             {cardToEdit ? 'Edit Question Card' : 'Add New Question Card'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
           >
             <IconX size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3.5 sm:space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                 Unit (1 to 5)
@@ -98,7 +98,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
               <select
                 value={unit}
                 onChange={(e) => setUnit(parseInt(e.target.value, 10) as UnitNumber)}
-                className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               >
                 <option value={1}>Unit 1: Physical Layer</option>
                 <option value={2}>Unit 2: Data Link Layer</option>
@@ -117,7 +117,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g. TCP 3-Way Handshake"
-                className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               />
             </div>
           </div>
@@ -132,7 +132,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Enter the exact exam question..."
               rows={3}
-              className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </div>
 
@@ -146,7 +146,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
               onChange={(e) => setAnswer(e.target.value)}
               placeholder="Core concise answer..."
               rows={4}
-              className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </div>
 
@@ -159,11 +159,11 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
               onChange={(e) => setKeyPointsText(e.target.value)}
               placeholder={`Point 1 to write in exam\nPoint 2 to write in exam\nPoint 3...`}
               rows={3}
-              className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+              className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                 Formula (Optional)
@@ -173,7 +173,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
                 value={formula}
                 onChange={(e) => setFormula(e.target.value)}
                 placeholder="e.g. 2B log2(1 + SNR)"
-                className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 font-mono"
+                className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 font-mono"
               />
             </div>
 
@@ -186,7 +186,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
                 value={mnemonic}
                 onChange={(e) => setMnemonic(e.target.value)}
                 placeholder="e.g. Please Do Not Touch Steve's..."
-                className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
+                className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
               onChange={(e) => setDiagram(e.target.value)}
               placeholder="e.g. [Client] --- SYN ---> [Server]"
               rows={3}
-              className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 font-mono"
+              className="w-full text-base sm:text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 font-mono"
             />
           </div>
 
