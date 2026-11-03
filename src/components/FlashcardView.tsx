@@ -1,0 +1,511 @@
+import React, { useState, useEffect, useRef } from 'react';
+import type { Flashcard, CardDifficulty } from '../types';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconRotate,
+  IconStar,
+  IconVolume,
+  IconShuffle,
+  IconEdit,
+  IconMaximize,
+  IconMinimize,
+  IconKeyboard,
+  IconCheck,
+  IconCheckCircle,
+} from './Icons';
+import { playSound } from '../utils/audio';
+
+interface FlashcardViewProps {
+  card: Flashcard;
+  currentIndex: number;
+  totalCards: number;
+  onNext: () => void;
+  onPrev: () => void;
+  onRate: (rating: CardDifficulty) => void;
+  onToggleStar: (id: string) => void;
+  onEditCard: (card: Flashcard) => void;
+  isShuffled: boolean;
+  onToggleShuffle: () => void;
+  soundEnabled: boolean;
+  blurtingEnabled: boolean;
+  onToggleBlurting: () => void;
+}
+
+export const FlashcardView: React.FC<FlashcardViewProps> = ({
+  card,
+  currentIndex,
+  totalCards,
+  onNext,
+  onPrev,
+  onRate,
+  onToggleStar,
+  onEditCard,
+  isShuffled,
+  onToggleShuffle,
+  soundEnabled,
+  blurtingEnabled,
+  onToggleBlurting,
+}) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [blurtText, setBlurtText] = useState('');
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const blurtInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reset flip state and blurt text when card changes
+  useEffect(() => {
+    setIsFlipped(false);
+    setBlurtText('');
+  }, [card.id]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in a textarea or input
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+      if (e.code === 'Space' && !isInput) {
+        e.preventDefault();
+        toggleFlip();
+        return;
+      }
+
+      if (isInput) {
+        // If in blurt textarea, allow Ctrl+Enter or Cmd+Enter to flip
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          toggleFlip();
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'h':
+          e.preventDefault();
+          onPrev();
+          break;
+        case 'ArrowRight':
+        case 'l':
+          e.preventDefault();
+          onNext();
+          break;
+        case '1':
+          onRate('again');
+          break;
+        case '2':
+          onRate('hard');
+          break;
+        case '3':
+          onRate('good');
+          break;
+        case '4':
+          onRate('easy');
+          break;
+        case 's':
+        case 'S':
+          onToggleStar(card.id);
+          break;
+        case 'z':
+        case 'Z':
+          setIsZenMode((prev) => !prev);
+          break;
+        case 'b':
+        case 'B':
+          onToggleBlurting();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFlipped, card.id]);
+
+  const toggleFlip = () => {
+    playSound('flip', soundEnabled);
+    setIsFlipped((prev) => !prev);
+  };
+
+  const handleSpeak = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    const textToRead = isFlipped ? card.answer : card.question;
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Keyword match helper for active blurting recall
+  const calculateKeywordMatch = () => {
+    if (!blurtText.trim()) return null;
+    const answerWords = new Set(
+      card.answer
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+    );
+    const userWords = blurtText
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+
+    const matches = userWords.filter((w) => answerWords.has(w));
+    const uniqueMatches = Array.from(new Set(matches));
+    return {
+      matchCount: uniqueMatches.length,
+      matchedWords: uniqueMatches,
+    };
+  };
+
+  const recallResult = isFlipped ? calculateKeywordMatch() : null;
+
+  return (
+    <div
+      className={`transition-all duration-300 ${
+        isZenMode
+          ? 'fixed inset-0 z-50 bg-neutral-950/95 backdrop-blur-xl flex flex-col justify-center items-center p-4 sm:p-8'
+          : 'w-full max-w-3xl mx-auto py-4 px-3 sm:px-0'
+      }`}
+    >
+      {/* Top Header Row above card */}
+      <div className="w-full flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-neutral-700 dark:text-neutral-300 font-medium">
+            {currentIndex + 1} / {totalCards}
+          </span>
+          <span className="text-neutral-300 dark:text-neutral-700">•</span>
+          <span className="px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 font-medium">
+            Unit {card.unit}
+          </span>
+          <span className="truncate max-w-[140px] sm:max-w-xs">{card.topic}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleShuffle}
+            title={isShuffled ? 'Shuffle: ON' : 'Shuffle: OFF'}
+            className={`p-1.5 rounded-md transition ${
+              isShuffled
+                ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900'
+                : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            <IconShuffle size={14} />
+          </button>
+
+          <button
+            onClick={() => onToggleStar(card.id)}
+            title={card.isStarred ? 'Unstar Question' : 'Star Question for Cramming'}
+            className={`p-1.5 rounded-md transition ${
+              card.isStarred
+                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
+                : 'text-neutral-400 hover:text-amber-500'
+            }`}
+          >
+            <IconStar size={15} filled={card.isStarred} />
+          </button>
+
+          <button
+            onClick={() => onEditCard(card)}
+            title="Edit Question"
+            className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+          >
+            <IconEdit size={14} />
+          </button>
+
+          <button
+            onClick={() => setIsZenMode(!isZenMode)}
+            title={isZenMode ? 'Exit Zen Mode (Esc/Z)' : 'Zen Focus Mode (Z)'}
+            className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+          >
+            {isZenMode ? <IconMinimize size={15} /> : <IconMaximize size={15} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Flashcard Container */}
+      <div
+        onClick={toggleFlip}
+        role="button"
+        tabIndex={0}
+        aria-label="Flashcard. Press space to flip."
+        className="w-full relative min-h-[380px] sm:min-h-[420px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer flex flex-col justify-between overflow-hidden select-none group"
+      >
+        {/* Subtle Unit Indicator Ribbon */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neutral-300 via-neutral-500 to-neutral-400 dark:from-neutral-800 dark:via-neutral-600 dark:to-neutral-800" />
+
+        {/* Card Body */}
+        <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between">
+          <div>
+            {/* Top Tag & Status Row */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <span className="text-[11px] font-mono tracking-wider uppercase text-neutral-400 dark:text-neutral-500">
+                {isFlipped ? 'ANSWER / KEY CONCEPTS' : 'QUESTION'}
+              </span>
+
+              <div className="flex items-center gap-2">
+                {card.repetitions > 0 && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
+                    <IconCheck size={10} />
+                    Reps: {card.repetitions}
+                  </span>
+                )}
+                <button
+                  onClick={handleSpeak}
+                  title="Read Aloud (TTS)"
+                  className={`p-1 rounded-md transition ${
+                    speaking
+                      ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 animate-pulse'
+                      : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                  }`}
+                >
+                  <IconVolume size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Front: Question */}
+            {!isFlipped ? (
+              <div className="space-y-4">
+                <h2 className="text-lg sm:text-2xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight leading-snug">
+                  {card.question}
+                </h2>
+
+                {/* Optional Formula / Hint Preview if present */}
+                {card.formula && (
+                  <div className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-600 dark:text-neutral-400">
+                    <span className="text-neutral-400 select-none mr-2">Formula clue:</span>
+                    {card.formula}
+                  </div>
+                )}
+
+                {/* Active Blurting / Self-Recall Area */}
+                {blurtingEnabled && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                        Active Recall Blurt Box (Test yourself before flipping):
+                      </label>
+                      <span className="text-[10px] text-neutral-400 font-mono">Ctrl+Enter to Reveal</span>
+                    </div>
+                    <textarea
+                      ref={blurtInputRef}
+                      value={blurtText}
+                      onChange={(e) => setBlurtText(e.target.value)}
+                      placeholder="Type keywords, formulas, or answer draft here to test your retention..."
+                      rows={3}
+                      className="w-full text-xs sm:text-sm p-3 rounded-lg bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600 resize-none"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Back: Answer & Key Points */
+              <div className="space-y-4">
+                <div className="text-sm sm:text-base text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal">
+                  {card.answer}
+                </div>
+
+                {/* Key Points for High-Yield Exam Answers */}
+                {card.keyPoints && card.keyPoints.length > 0 && (
+                  <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/70 border border-neutral-200 dark:border-neutral-800 space-y-2">
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-500 font-semibold flex items-center gap-1.5">
+                      <IconCheckCircle size={12} className="text-neutral-400" />
+                      Key Points for Exam Scoring:
+                    </div>
+                    <ul className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 space-y-1.5 pl-4 list-disc marker:text-neutral-400">
+                      {card.keyPoints.map((pt, i) => (
+                        <li key={i}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Formula Box */}
+                {card.formula && (
+                  <div className="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between text-xs font-mono">
+                    <span className="text-neutral-500">Formula:</span>
+                    <span className="text-neutral-900 dark:text-neutral-100 font-semibold">{card.formula}</span>
+                  </div>
+                )}
+
+                {/* Mnemonic / Memory Hack Box */}
+                {card.mnemonic && (
+                  <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <span className="font-mono uppercase font-bold text-[10px] px-1.5 py-0.5 rounded bg-amber-200/50 dark:bg-amber-900/50">
+                      Mnemonic
+                    </span>
+                    <p className="leading-relaxed">{card.mnemonic}</p>
+                  </div>
+                )}
+
+                {/* Blurting Recall Score Feedback if user wrote something */}
+                {recallResult && recallResult.matchCount > 0 && (
+                  <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                    <span className="font-semibold">Recall Match:</span>
+                    <span>
+                      {recallResult.matchCount} key terms captured ({recallResult.matchedWords.slice(0, 4).join(', ')}
+                      {recallResult.matchedWords.length > 4 ? '...' : ''})
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Flip Hint Pill */}
+          <div className="pt-6 flex items-center justify-between text-xs text-neutral-400">
+            <span className="inline-flex items-center gap-1">
+              <IconRotate size={13} />
+              {isFlipped ? 'Click card or Space to see Question' : 'Click card or Space to reveal Answer'}
+            </span>
+            <span className="font-mono text-[10px] hidden sm:inline">Space / Enter</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Spaced Repetition Rating Buttons */}
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Rapid Rating Options */}
+        <div className="grid grid-cols-4 gap-2 w-full sm:w-auto flex-1">
+          <button
+            onClick={() => {
+              playSound('again', soundEnabled);
+              onRate('again');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-rose-200 dark:border-rose-950 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 transition"
+          >
+            <span className="text-xs font-semibold">Again</span>
+            <span className="text-[10px] text-rose-500 font-mono">1 • Repeat</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSound('click', soundEnabled);
+              onRate('hard');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-amber-200 dark:border-amber-950 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 transition"
+          >
+            <span className="text-xs font-semibold">Hard</span>
+            <span className="text-[10px] text-amber-500 font-mono">2 • 1 day</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSound('click', soundEnabled);
+              onRate('good');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/60 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition"
+          >
+            <span className="text-xs font-semibold">Good</span>
+            <span className="text-[10px] text-neutral-500 font-mono">3 • 3 days</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSound('easy', soundEnabled);
+              onRate('easy');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-3 rounded-xl border border-emerald-200 dark:border-emerald-950 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 transition"
+          >
+            <span className="text-xs font-semibold">Easy</span>
+            <span className="text-[10px] text-emerald-500 font-mono">4 • Mastered</span>
+          </button>
+        </div>
+
+        {/* Prev / Next navigation buttons */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button
+            onClick={onPrev}
+            title="Previous Card (← or H)"
+            className="p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+          >
+            <IconChevronLeft size={16} />
+          </button>
+          <button
+            onClick={onNext}
+            title="Next Card (→ or L)"
+            className="p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+          >
+            <IconChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Quick memorization helper toggles bar */}
+      <div className="mt-5 pt-3 border-t border-neutral-150 dark:border-neutral-900 flex items-center justify-between text-xs text-neutral-500">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleBlurting}
+            className={`flex items-center gap-1.5 transition ${
+              blurtingEnabled ? 'text-neutral-900 dark:text-neutral-100 font-medium' : 'hover:text-neutral-700'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${blurtingEnabled ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'}`} />
+            Active Recall Blurt Mode (B)
+          </button>
+        </div>
+
+        <button
+          onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+          className="flex items-center gap-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+        >
+          <IconKeyboard size={13} />
+          Shortcuts
+        </button>
+      </div>
+
+      {/* Keyboard Shortcuts Drawer */}
+      {showKeyboardHelp && (
+        <div className="mt-3 p-3.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-600 dark:text-neutral-400 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div>
+            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">
+              Space
+            </kbd>{' '}
+            Flip Card
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">
+              ← / →
+            </kbd>{' '}
+            Prev / Next
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">
+              1 - 4
+            </kbd>{' '}
+            Rate Difficulty
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">
+              S
+            </kbd>{' '}
+            Star Question
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
