@@ -51,7 +51,6 @@ Built with **React 19**, **Vite**, **TypeScript**, and **Tailwind CSS**. Designe
 
 ### 1. Start the Development Server
 ```bash
-cd "C:\Users\kunal\.gemini\antigravity\scratch\cn-flashcards"
 npm run dev
 ```
 
