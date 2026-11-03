@@ -12,6 +12,8 @@ export interface Flashcard {
   keyPoints?: string[];
   mnemonic?: string;
   formula?: string;
+  diagram?: string;
+  diagramTitle?: string;
   tags?: string[];
   // Memorization metadata
   difficulty: CardDifficulty;

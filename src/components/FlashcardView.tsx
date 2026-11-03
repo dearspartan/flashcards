@@ -13,6 +13,7 @@ import {
   IconKeyboard,
   IconCheck,
   IconCheckCircle,
+  IconCopy,
 } from './Icons';
 import { playSound } from '../utils/audio';
 
@@ -52,6 +53,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const [isZenMode, setIsZenMode] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [copiedDiagram, setCopiedDiagram] = useState(false);
   const blurtInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Reset flip state and blurt text when card changes
@@ -63,10 +65,10 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in a textarea or input
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
 
+      // Space flips the card
       if (e.code === 'Space' && !isInput) {
         e.preventDefault();
         toggleFlip();
@@ -74,7 +76,6 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       }
 
       if (isInput) {
-        // If in blurt textarea, allow Ctrl+Enter or Cmd+Enter to flip
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
           e.preventDefault();
           toggleFlip();
@@ -150,6 +151,14 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
     setSpeaking(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const copyDiagram = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!card.diagram) return;
+    navigator.clipboard.writeText(card.diagram);
+    setCopiedDiagram(true);
+    setTimeout(() => setCopiedDiagram(false), 2000);
   };
 
   // Keyword match helper for active blurting recall
@@ -242,146 +251,208 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         </div>
       </div>
 
-      {/* Main Flashcard Container */}
-      <div
-        onClick={toggleFlip}
-        role="button"
-        tabIndex={0}
-        aria-label="Flashcard. Press space to flip."
-        className="w-full relative min-h-[380px] sm:min-h-[420px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer flex flex-col justify-between overflow-hidden select-none group"
-      >
-        {/* Subtle Unit Indicator Ribbon */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neutral-300 via-neutral-500 to-neutral-400 dark:from-neutral-800 dark:via-neutral-600 dark:to-neutral-800" />
+      {/* 3D Animated Flip Card Container */}
+      <div className="flip-card-container w-full h-[470px] sm:h-[510px]">
+        <div
+          className={`flip-card-inner ${isFlipped ? 'flipped' : ''}`}
+          onClick={toggleFlip}
+          role="button"
+          tabIndex={0}
+          aria-label="Flashcard. Press Space to flip."
+        >
+          {/* ================= FRONT SIDE (QUESTION) ================= */}
+          <div className="flip-card-front bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer select-none">
+            {/* Top Indicator Ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-neutral-300 via-neutral-500 to-neutral-400 dark:from-neutral-800 dark:via-neutral-600 dark:to-neutral-800" />
 
-        {/* Card Body */}
-        <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between">
-          <div>
-            {/* Top Tag & Status Row */}
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <span className="text-[11px] font-mono tracking-wider uppercase text-neutral-400 dark:text-neutral-500">
-                {isFlipped ? 'ANSWER / KEY CONCEPTS' : 'QUESTION'}
-              </span>
-
-              <div className="flex items-center gap-2">
-                {card.repetitions > 0 && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
-                    <IconCheck size={10} />
-                    Reps: {card.repetitions}
+            <div>
+              {/* Question Tag Row */}
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono tracking-wider uppercase text-neutral-400 dark:text-neutral-500">
+                    QUESTION
                   </span>
-                )}
-                <button
-                  onClick={handleSpeak}
-                  title="Read Aloud (TTS)"
-                  className={`p-1 rounded-md transition ${
-                    speaking
-                      ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 animate-pulse'
-                      : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                  }`}
-                >
-                  <IconVolume size={14} />
-                </button>
-              </div>
-            </div>
+                  {card.diagram && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                      📊 Diagram Included
+                    </span>
+                  )}
+                </div>
 
-            {/* Front: Question */}
-            {!isFlipped ? (
+                <div className="flex items-center gap-2">
+                  {card.repetitions > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
+                      <IconCheck size={10} />
+                      Reps: {card.repetitions}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleSpeak}
+                    title="Read Aloud (TTS)"
+                    className={`p-1.5 rounded-md transition ${
+                      speaking
+                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 animate-pulse'
+                        : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                    }`}
+                  >
+                    <IconVolume size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Question Text */}
               <div className="space-y-4">
                 <h2 className="text-lg sm:text-2xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight leading-snug">
                   {card.question}
                 </h2>
 
-                {/* Optional Formula / Hint Preview if present */}
                 {card.formula && (
                   <div className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                    <span className="text-neutral-400 select-none mr-2">Formula clue:</span>
+                    <span className="text-neutral-400 select-none mr-2">Formula hint:</span>
                     {card.formula}
                   </div>
                 )}
 
-                {/* Active Blurting / Self-Recall Area */}
+                {/* Active Blurting Area */}
                 {blurtingEnabled && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800"
+                    className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
                         Active Recall Blurt Box (Test yourself before flipping):
                       </label>
-                      <span className="text-[10px] text-neutral-400 font-mono">Ctrl+Enter to Reveal</span>
+                      <span className="text-[10px] text-neutral-400 font-mono">Ctrl+Enter to Flip</span>
                     </div>
                     <textarea
                       ref={blurtInputRef}
                       value={blurtText}
                       onChange={(e) => setBlurtText(e.target.value)}
-                      placeholder="Type keywords, formulas, or answer draft here to test your retention..."
+                      placeholder="Type keywords, key definitions, or formulas here to test recall..."
                       rows={3}
                       className="w-full text-xs sm:text-sm p-3 rounded-lg bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600 resize-none"
                     />
                   </div>
                 )}
               </div>
-            ) : (
-              /* Back: Answer & Key Points */
-              <div className="space-y-4">
-                <div className="text-sm sm:text-base text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal">
-                  {card.answer}
-                </div>
+            </div>
 
-                {/* Key Points for High-Yield Exam Answers */}
-                {card.keyPoints && card.keyPoints.length > 0 && (
-                  <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/70 border border-neutral-200 dark:border-neutral-800 space-y-2">
-                    <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-500 font-semibold flex items-center gap-1.5">
-                      <IconCheckCircle size={12} className="text-neutral-400" />
-                      Key Points for Exam Scoring:
-                    </div>
-                    <ul className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 space-y-1.5 pl-4 list-disc marker:text-neutral-400">
-                      {card.keyPoints.map((pt, i) => (
-                        <li key={i}>{pt}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Formula Box */}
-                {card.formula && (
-                  <div className="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between text-xs font-mono">
-                    <span className="text-neutral-500">Formula:</span>
-                    <span className="text-neutral-900 dark:text-neutral-100 font-semibold">{card.formula}</span>
-                  </div>
-                )}
-
-                {/* Mnemonic / Memory Hack Box */}
-                {card.mnemonic && (
-                  <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
-                    <span className="font-mono uppercase font-bold text-[10px] px-1.5 py-0.5 rounded bg-amber-200/50 dark:bg-amber-900/50">
-                      Mnemonic
-                    </span>
-                    <p className="leading-relaxed">{card.mnemonic}</p>
-                  </div>
-                )}
-
-                {/* Blurting Recall Score Feedback if user wrote something */}
-                {recallResult && recallResult.matchCount > 0 && (
-                  <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                    <span className="font-semibold">Recall Match:</span>
-                    <span>
-                      {recallResult.matchCount} key terms captured ({recallResult.matchedWords.slice(0, 4).join(', ')}
-                      {recallResult.matchedWords.length > 4 ? '...' : ''})
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Bottom Flip Hint */}
+            <div className="pt-4 flex items-center justify-between text-xs text-neutral-400 border-t border-neutral-100 dark:border-neutral-800/60 mt-auto">
+              <span className="inline-flex items-center gap-1.5">
+                <IconRotate size={13} className="text-neutral-400" />
+                <span>Press <strong>Space</strong> or click card to flip to Answer</span>
+              </span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                Space / Enter
+              </span>
+            </div>
           </div>
 
-          {/* Bottom Flip Hint Pill */}
-          <div className="pt-6 flex items-center justify-between text-xs text-neutral-400">
-            <span className="inline-flex items-center gap-1">
-              <IconRotate size={13} />
-              {isFlipped ? 'Click card or Space to see Question' : 'Click card or Space to reveal Answer'}
-            </span>
-            <span className="font-mono text-[10px] hidden sm:inline">Space / Enter</span>
+          {/* ================= BACK SIDE (ANSWER & DIAGRAM) ================= */}
+          <div className="flip-card-back bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer select-none">
+            {/* Top Indicator Ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500" />
+
+            <div className="space-y-4">
+              {/* Header row */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-[11px] font-mono tracking-wider uppercase text-emerald-600 dark:text-emerald-400 font-semibold">
+                  ANSWER & CONCEPTS
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSpeak}
+                    title="Read Aloud Answer"
+                    className={`p-1.5 rounded-md transition ${
+                      speaking
+                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 animate-pulse'
+                        : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                    }`}
+                  >
+                    <IconVolume size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Definitive Answer */}
+              <div className="text-sm sm:text-base text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal">
+                {card.answer}
+              </div>
+
+              {/* Visual Diagram Box if available */}
+              {card.diagram && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 p-3 text-neutral-800 dark:text-neutral-200 space-y-1.5"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-mono uppercase text-neutral-500 pb-1 border-b border-neutral-200 dark:border-neutral-800">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      📊 Visual Concept / Topology Diagram
+                    </span>
+                    <button
+                      onClick={copyDiagram}
+                      title="Copy Diagram"
+                      className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-0.5"
+                    >
+                      {copiedDiagram ? <IconCheck size={13} className="text-emerald-500" /> : <IconCopy size={13} />}
+                    </button>
+                  </div>
+                  <pre className="font-mono text-[11px] sm:text-xs leading-tight whitespace-pre overflow-x-auto text-neutral-700 dark:text-neutral-300 py-1 scrollbar-thin">
+                    {card.diagram}
+                  </pre>
+                </div>
+              )}
+
+              {/* Key Exam Points */}
+              {card.keyPoints && card.keyPoints.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/70 border border-neutral-200 dark:border-neutral-800 space-y-1.5">
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-neutral-500 font-semibold flex items-center gap-1.5">
+                    <IconCheckCircle size={12} className="text-neutral-400" />
+                    Key Points for Viva / Exam Marks:
+                  </div>
+                  <ul className="text-xs sm:text-sm text-neutral-700 dark:text-neutral-300 space-y-1 pl-4 list-disc marker:text-neutral-400">
+                    {card.keyPoints.map((pt, i) => (
+                      <li key={i}>{pt}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Mnemonic / Formula */}
+              {card.mnemonic && (
+                <div className="p-2.5 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                  <span className="font-mono uppercase font-bold text-[10px] px-1.5 py-0.5 rounded bg-amber-200/50 dark:bg-amber-900/50">
+                    Mnemonic
+                  </span>
+                  <p className="leading-relaxed">{card.mnemonic}</p>
+                </div>
+              )}
+
+              {/* Blurting feedback */}
+              {recallResult && recallResult.matchCount > 0 && (
+                <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                  <span className="font-semibold">Recall Match:</span>
+                  <span>
+                    {recallResult.matchCount} key terms captured ({recallResult.matchedWords.slice(0, 4).join(', ')}
+                    {recallResult.matchedWords.length > 4 ? '...' : ''})
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Flip Back Hint */}
+            <div className="pt-4 flex items-center justify-between text-xs text-neutral-400 border-t border-neutral-100 dark:border-neutral-800/60 mt-auto">
+              <span className="inline-flex items-center gap-1.5">
+                <IconRotate size={13} className="text-neutral-400" />
+                <span>Press <strong>Space</strong> or click card to flip back to Question</span>
+              </span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                Space / Enter
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -484,7 +555,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
             <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">
               Space
             </kbd>{' '}
-            Flip Card
+            3D Flip Card
           </div>
           <div>
             <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 font-mono text-[10px]">

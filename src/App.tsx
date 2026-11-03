@@ -186,6 +186,7 @@ export const App: React.FC = () => {
         keyPoints: cardData.keyPoints,
         formula: cardData.formula,
         mnemonic: cardData.mnemonic,
+        diagram: cardData.diagram,
         difficulty: 'new',
         repetitions: 0,
         tags: cardData.tags || [],

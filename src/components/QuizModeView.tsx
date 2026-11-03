@@ -226,6 +226,13 @@ export const QuizModeView: React.FC<QuizModeViewProps> = ({
               <p className="text-xs sm:text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
                 {currentCard.answer}
               </p>
+              {currentCard.diagram && (
+                <div className="p-2.5 rounded-lg bg-neutral-100 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800">
+                  <pre className="font-mono text-[10px] sm:text-[11px] leading-tight whitespace-pre overflow-x-auto text-neutral-800 dark:text-neutral-200">
+                    {currentCard.diagram}
+                  </pre>
+                </div>
+              )}
               {currentCard.keyPoints && (
                 <ul className="text-xs text-neutral-600 dark:text-neutral-400 space-y-1 pl-4 list-disc">
                   {currentCard.keyPoints.slice(0, 3).map((pt, i) => (

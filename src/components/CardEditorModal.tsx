@@ -24,6 +24,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
   const [keyPointsText, setKeyPointsText] = useState('');
   const [formula, setFormula] = useState('');
   const [mnemonic, setMnemonic] = useState('');
+  const [diagram, setDiagram] = useState('');
 
   useEffect(() => {
     if (cardToEdit) {
@@ -34,6 +35,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
       setKeyPointsText(cardToEdit.keyPoints ? cardToEdit.keyPoints.join('\n') : '');
       setFormula(cardToEdit.formula || '');
       setMnemonic(cardToEdit.mnemonic || '');
+      setDiagram(cardToEdit.diagram || '');
     } else {
       setUnit(1);
       setTopic('');
@@ -42,6 +44,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
       setKeyPointsText('');
       setFormula('');
       setMnemonic('');
+      setDiagram('');
     }
   }, [cardToEdit, isOpen]);
 
@@ -65,6 +68,7 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
       keyPoints: keyPoints.length > 0 ? keyPoints : undefined,
       formula: formula.trim() || undefined,
       mnemonic: mnemonic.trim() || undefined,
+      diagram: diagram.trim() || undefined,
     });
 
     onClose();
@@ -185,6 +189,19 @@ export const CardEditorModal: React.FC<CardEditorModalProps> = ({
                 className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              Visual Diagram / ASCII Flow (Optional)
+            </label>
+            <textarea
+              value={diagram}
+              onChange={(e) => setDiagram(e.target.value)}
+              placeholder="e.g. [Client] --- SYN ---> [Server]"
+              rows={3}
+              className="w-full text-xs p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-400 font-mono"
+            />
           </div>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">

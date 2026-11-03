@@ -1,8 +1,8 @@
 import type { Flashcard, CardDifficulty, UnitNumber } from '../types';
 import { DEFAULT_FLASHCARDS } from '../data/defaultCards';
 
-const STORAGE_KEY = 'cn_flashcards_data_v2';
-const SETTINGS_KEY = 'cn_flashcards_settings_v2';
+const STORAGE_KEY = 'cn_flashcards_data_v3_204';
+const SETTINGS_KEY = 'cn_flashcards_settings_v3';
 
 export interface UserSettings {
   soundEnabled: boolean;

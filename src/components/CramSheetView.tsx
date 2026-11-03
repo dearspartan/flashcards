@@ -203,6 +203,17 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
                             {card.answer}
                           </p>
 
+                          {card.diagram && (
+                            <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-1">
+                              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 font-semibold block">
+                                📊 Concept / Topology Diagram:
+                              </span>
+                              <pre className="font-mono text-[11px] leading-tight whitespace-pre overflow-x-auto text-neutral-800 dark:text-neutral-200 py-1">
+                                {card.diagram}
+                              </pre>
+                            </div>
+                          )}
+
                           {card.keyPoints && card.keyPoints.length > 0 && (
                             <div className="space-y-1.5 pt-1">
                               <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">
