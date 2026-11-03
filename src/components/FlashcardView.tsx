@@ -14,6 +14,7 @@ import {
   IconCheck,
   IconCheckCircle,
   IconCopy,
+  IconX,
 } from './Icons';
 import { playSound } from '../utils/audio';
 
@@ -24,6 +25,7 @@ interface FlashcardViewProps {
   onNext: () => void;
   onPrev: () => void;
   onRate: (rating: CardDifficulty) => void;
+  onMarkKnown: (isKnown: boolean) => void;
   onToggleStar: (id: string) => void;
   onEditCard: (card: Flashcard) => void;
   isShuffled: boolean;
@@ -40,6 +42,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   onNext,
   onPrev,
   onRate,
+  onMarkKnown,
   onToggleStar,
   onEditCard,
   isShuffled,
@@ -54,6 +57,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const [speaking, setSpeaking] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [copiedDiagram, setCopiedDiagram] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const blurtInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Reset flip state and blurt text when card changes
@@ -161,6 +165,22 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     setTimeout(() => setCopiedDiagram(false), 2000);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchEndX - touchStartX.current;
+    if (diffX > 60) {
+      onPrev();
+    } else if (diffX < -60) {
+      onNext();
+    }
+    touchStartX.current = null;
+  };
+
   // Keyword match helper for active blurting recall
   const calculateKeywordMatch = () => {
     if (!blurtText.trim()) return null;
@@ -252,7 +272,11 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       </div>
 
       {/* 3D Animated Flip Card Container */}
-      <div className="flip-card-container w-full h-[470px] sm:h-[510px]">
+      <div
+        className="flip-card-container w-full h-[470px] sm:h-[510px]"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div
           className={`flip-card-inner ${isFlipped ? 'flipped' : ''}`}
           onClick={toggleFlip}
@@ -457,10 +481,43 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         </div>
       </div>
 
-      {/* Spaced Repetition Rating Buttons */}
-      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Rapid Rating Options */}
-        <div className="grid grid-cols-4 gap-2 w-full sm:w-auto flex-1">
+      {/* Known / Unknown & Spaced Repetition Rating Buttons */}
+      <div className="mt-4 space-y-2">
+        {/* Quick Mark Known / Unknown buttons */}
+        <div className="flex items-center gap-2 w-full">
+          <button
+            onClick={() => {
+              playSound('again', soundEnabled);
+              onMarkKnown(false);
+            }}
+            className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+              card.isKnown === false
+                ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500'
+                : 'border-neutral-200 dark:border-neutral-800 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-neutral-600 dark:text-neutral-400'
+            }`}
+          >
+            <IconX size={14} className="text-rose-500" />
+            <span>Mark Unknown (Need Review)</span>
+          </button>
+          <button
+            onClick={() => {
+              playSound('correct', soundEnabled);
+              onMarkKnown(true);
+            }}
+            className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+              card.isKnown === true
+                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500'
+                : 'border-neutral-200 dark:border-neutral-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-neutral-600 dark:text-neutral-400'
+            }`}
+          >
+            <IconCheck size={14} className="text-emerald-500" />
+            <span>Mark Known (Got It!)</span>
+          </button>
+        </div>
+
+        {/* 4 Leitner Rating Options */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="grid grid-cols-4 gap-2 w-full sm:w-auto flex-1">
           <button
             onClick={() => {
               playSound('again', soundEnabled);
@@ -524,6 +581,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           </button>
         </div>
       </div>
+    </div>
 
       {/* Quick memorization helper toggles bar */}
       <div className="mt-5 pt-3 border-t border-neutral-150 dark:border-neutral-900 flex items-center justify-between text-xs text-neutral-500">

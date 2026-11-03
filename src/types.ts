@@ -21,13 +21,34 @@ export interface Flashcard {
   lastReviewed?: number; // timestamp
   nextReview?: number; // timestamp
   isStarred?: boolean;
+  isKnown?: boolean; // Mark as Known vs Unknown
 }
 
-export type ViewMode = 'study' | 'quiz' | 'sheet' | 'stats';
+export interface Deck {
+  id: string;
+  name: string;
+  description: string;
+  unit?: UnitNumber | 'all';
+  cardIds: string[];
+  folder?: string;
+  color?: string;
+  createdAt: number;
+}
+
+export interface DailyProgress {
+  streak: number;
+  lastStudiedDate: string; // YYYY-MM-DD
+  cardsStudiedToday: number;
+  dailyGoal: number; // e.g. 20
+  totalReviewedAllTime: number;
+}
+
+export type ViewMode = 'study' | 'decks' | 'mcq' | 'quiz' | 'sheet' | 'stats';
 
 export interface FilterState {
+  deckId: string;
   unit: 'all' | UnitNumber;
-  status: 'all' | 'unlearned' | 'learning' | 'mastered' | 'starred';
+  status: 'all' | 'unknown' | 'known' | 'unlearned' | 'learning' | 'mastered' | 'starred';
   searchQuery: string;
 }
 

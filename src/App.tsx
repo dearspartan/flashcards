@@ -5,6 +5,8 @@ import type {
   ViewMode,
   FilterState,
   CardDifficulty,
+  Deck,
+  DailyProgress,
 } from './types';
 import {
   loadFlashcards,
@@ -12,11 +14,17 @@ import {
   loadSettings,
   saveSettings,
   updateCardRepetition,
+  loadDecks,
+  saveDecks,
+  loadDailyProgress,
+  recordStudySession,
 } from './utils/storage';
 import type { UserSettings } from './utils/storage';
 import { DEFAULT_FLASHCARDS } from './data/defaultCards';
 import { Navbar } from './components/Navbar';
 import { FlashcardView } from './components/FlashcardView';
+import { DeckManagerView } from './components/DeckManagerView';
+import { MCQModeView } from './components/MCQModeView';
 import { CramSheetView } from './components/CramSheetView';
 import { QuizModeView } from './components/QuizModeView';
 import { StatsView } from './components/StatsView';
@@ -26,10 +34,14 @@ import { IconLayers } from './components/Icons';
 
 export const App: React.FC = () => {
   const [cards, setCards] = useState<Flashcard[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [activeDeckId, setActiveDeckId] = useState<string>('deck-all');
+  const [dailyProgress, setDailyProgress] = useState<DailyProgress>(loadDailyProgress());
   const [settings, setSettings] = useState<UserSettings>(loadSettings());
   const [currentUnit, setCurrentUnit] = useState<'all' | UnitNumber>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('study');
   const [filterState, setFilterState] = useState<FilterState>({
+    deckId: 'deck-all',
     unit: 'all',
     status: 'all',
     searchQuery: '',
@@ -40,10 +52,12 @@ export const App: React.FC = () => {
   const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Flashcard | null>(null);
 
-  // Initialize cards from storage
+  // Initialize cards & decks from storage
   useEffect(() => {
-    const loaded = loadFlashcards();
-    setCards(loaded);
+    const loadedCards = loadFlashcards();
+    setCards(loadedCards);
+    const loadedDecks = loadDecks(loadedCards);
+    setDecks(loadedDecks);
   }, []);
 
   // Sync dark class on document element
@@ -56,15 +70,38 @@ export const App: React.FC = () => {
     saveSettings(settings);
   }, [settings]);
 
-  // Save cards to storage whenever updated
+  // Update cards state helper
   const updateCardsState = (newCards: Flashcard[]) => {
     setCards(newCards);
     saveFlashcards(newCards);
   };
 
-  // Filtered cards based on selected unit, status, and search query
+  // Update decks state helper
+  const updateDecksState = (newDecks: Deck[]) => {
+    setDecks(newDecks);
+    saveDecks(newDecks);
+  };
+
+  // Record a study interaction for daily goals and streak
+  const handleRecordStudy = () => {
+    const updated = recordStudySession();
+    setDailyProgress(updated);
+  };
+
+  // Active deck
+  const activeDeck = useMemo(() => {
+    return decks.find((d) => d.id === activeDeckId) || decks[0];
+  }, [decks, activeDeckId]);
+
+  // Filtered cards based on active deck, unit, status, and search query
   const filteredCards = useMemo(() => {
     let result = [...cards];
+
+    // Restrict to active deck cards if specific deck chosen
+    if (activeDeck && activeDeck.id !== 'deck-all' && activeDeck.cardIds.length > 0) {
+      const idSet = new Set(activeDeck.cardIds);
+      result = result.filter((c) => idSet.has(c.id));
+    }
 
     // Unit filter
     if (currentUnit !== 'all') {
@@ -72,7 +109,11 @@ export const App: React.FC = () => {
     }
 
     // Status filter
-    if (filterState.status === 'starred') {
+    if (filterState.status === 'unknown') {
+      result = result.filter((c) => c.isKnown === false || c.difficulty === 'again');
+    } else if (filterState.status === 'known') {
+      result = result.filter((c) => c.isKnown === true);
+    } else if (filterState.status === 'starred') {
       result = result.filter((c) => c.isStarred);
     } else if (filterState.status === 'mastered') {
       result = result.filter((c) => c.repetitions >= 2);
@@ -102,12 +143,12 @@ export const App: React.FC = () => {
     }
 
     return result;
-  }, [cards, currentUnit, filterState, settings.shuffle]);
+  }, [cards, activeDeck, currentUnit, filterState, settings.shuffle]);
 
   // Reset index when filter changes
   useEffect(() => {
     setCurrentIndex(0);
-  }, [currentUnit, filterState.status, filterState.searchQuery]);
+  }, [activeDeckId, currentUnit, filterState.status, filterState.searchQuery]);
 
   // Unit count badges
   const unitCounts = useMemo(() => {
@@ -116,6 +157,11 @@ export const App: React.FC = () => {
       counts[String(u)] = cards.filter((c) => c.unit === u).length;
     });
     return counts;
+  }, [cards]);
+
+  // Unknown cards count for Smart Revision
+  const unknownCount = useMemo(() => {
+    return cards.filter((c) => c.isKnown === false || c.difficulty === 'again').length;
   }, [cards]);
 
   // Navigation handlers
@@ -137,8 +183,29 @@ export const App: React.FC = () => {
 
     const newCards = cards.map((c) => (c.id === updated.id ? updated : c));
     updateCardsState(newCards);
+    handleRecordStudy();
 
-    // If "Again", re-insert at end of session for immediate reinforcement
+    if (settings.autoFlipOnRating) {
+      handleNext();
+    }
+  };
+
+  // Mark as Known / Unknown
+  const handleMarkKnown = (isKnown: boolean) => {
+    if (filteredCards.length === 0) return;
+    const currentCard = filteredCards[currentIndex];
+    const updated: Flashcard = {
+      ...currentCard,
+      isKnown,
+      difficulty: isKnown ? (currentCard.repetitions > 0 ? 'good' : 'hard') : 'again',
+      repetitions: isKnown ? Math.max(1, currentCard.repetitions + 1) : 0,
+      lastReviewed: Date.now(),
+    };
+
+    const newCards = cards.map((c) => (c.id === updated.id ? updated : c));
+    updateCardsState(newCards);
+    handleRecordStudy();
+
     if (settings.autoFlipOnRating) {
       handleNext();
     }
@@ -148,6 +215,55 @@ export const App: React.FC = () => {
   const handleToggleStar = (cardId: string) => {
     const newCards = cards.map((c) => (c.id === cardId ? { ...c, isStarred: !c.isStarred } : c));
     updateCardsState(newCards);
+  };
+
+  // Deck Management actions
+  const handleSelectDeckAndStudy = (deckId: string) => {
+    setActiveDeckId(deckId);
+    setCurrentUnit('all');
+    setFilterState((prev) => ({ ...prev, deckId, status: 'all' }));
+    setViewMode('study');
+  };
+
+  const handleSelectDeckAndMCQ = (deckId: string) => {
+    setActiveDeckId(deckId);
+    setCurrentUnit('all');
+    setFilterState((prev) => ({ ...prev, deckId, status: 'all' }));
+    setViewMode('mcq');
+  };
+
+  const handleCreateDeck = (newDeckData: Partial<Deck>) => {
+    const newDeck: Deck = {
+      id: `custom-deck-${Date.now()}`,
+      name: newDeckData.name || 'New Custom Deck',
+      description: newDeckData.description || '',
+      folder: newDeckData.folder || 'Custom Decks',
+      unit: newDeckData.unit || 'all',
+      cardIds: newDeckData.cardIds || [],
+      color: newDeckData.color || '#6366f1',
+      createdAt: Date.now(),
+    };
+    updateDecksState([...decks, newDeck]);
+  };
+
+  const handleDuplicateDeck = (deckId: string) => {
+    const target = decks.find((d) => d.id === deckId);
+    if (!target) return;
+    const duplicated: Deck = {
+      ...target,
+      id: `copy-${Date.now()}`,
+      name: `${target.name} (Copy)`,
+      createdAt: Date.now(),
+    };
+    updateDecksState([...decks, duplicated]);
+  };
+
+  const handleDeleteDeck = (deckId: string) => {
+    const filtered = decks.filter((d) => d.id !== deckId);
+    updateDecksState(filtered);
+    if (activeDeckId === deckId) {
+      setActiveDeckId('deck-all');
+    }
   };
 
   // Card edit & creation
@@ -163,7 +279,6 @@ export const App: React.FC = () => {
 
   const handleSaveCard = (cardData: Partial<Flashcard>) => {
     if (cardData.id) {
-      // Edit existing
       const newCards = cards.map((c) =>
         c.id === cardData.id
           ? ({
@@ -175,7 +290,6 @@ export const App: React.FC = () => {
       );
       updateCardsState(newCards);
     } else {
-      // Create new
       const newCard: Flashcard = {
         id: `card-${Date.now()}`,
         unit: (cardData.unit || 1) as UnitNumber,
@@ -205,7 +319,6 @@ export const App: React.FC = () => {
     if (mode === 'replace') {
       updateCardsState(imported);
     } else {
-      // Append unique questions
       const existingQuestions = new Set(cards.map((c) => c.question.trim().toLowerCase()));
       const filteredNew = imported.filter(
         (c) => !existingQuestions.has(c.question.trim().toLowerCase())
@@ -235,6 +348,8 @@ export const App: React.FC = () => {
         onFilterChange={(newFilters) => setFilterState((prev) => ({ ...prev, ...newFilters }))}
         unitCounts={unitCounts}
         totalCount={cards.length}
+        unknownCount={unknownCount}
+        dailyProgress={dailyProgress}
         onOpenImport={() => setIsImportModalOpen(true)}
         onOpenNewCard={handleOpenNewCard}
         soundEnabled={settings.soundEnabled}
@@ -247,6 +362,38 @@ export const App: React.FC = () => {
 
       {/* Main Body Content based on View Mode */}
       <main className="flex-1 flex flex-col justify-center max-w-7xl w-full mx-auto p-4 sm:p-6">
+        {/* Active Deck Header Indicator */}
+        {activeDeck && activeDeck.id !== 'deck-all' && (
+          <div className="max-w-3xl mx-auto w-full mb-3 flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                Current Deck:
+              </span>
+              <span className="font-medium">{activeDeck.name}</span>
+              <span className="text-neutral-400">({filteredCards.length} cards)</span>
+            </div>
+            <button
+              onClick={() => setActiveDeckId('deck-all')}
+              className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 underline font-medium"
+            >
+              Reset to All Cards
+            </button>
+          </div>
+        )}
+
+        {viewMode === 'decks' && (
+          <DeckManagerView
+            decks={decks}
+            cards={cards}
+            activeDeckId={activeDeckId}
+            onSelectDeckAndStudy={handleSelectDeckAndStudy}
+            onSelectDeckAndMCQ={handleSelectDeckAndMCQ}
+            onCreateDeck={handleCreateDeck}
+            onDuplicateDeck={handleDuplicateDeck}
+            onDeleteDeck={handleDeleteDeck}
+          />
+        )}
+
         {viewMode === 'study' && (
           <>
             {filteredCards.length > 0 ? (
@@ -257,6 +404,7 @@ export const App: React.FC = () => {
                 onNext={handleNext}
                 onPrev={handlePrev}
                 onRate={handleRateCard}
+                onMarkKnown={handleMarkKnown}
                 onToggleStar={handleToggleStar}
                 onEditCard={handleEditCard}
                 isShuffled={settings.shuffle}
@@ -274,17 +422,18 @@ export const App: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-semibold">No questions match your filter</h3>
                 <p className="text-xs text-neutral-500">
-                  Try changing your search term, select "All Units", or import your Computer Networks questions.
+                  Try changing your search term, select "All Units", or clear the Unknown filter.
                 </p>
                 <div className="flex items-center justify-center gap-3 pt-2">
                   <button
                     onClick={() => {
                       setCurrentUnit('all');
-                      setFilterState({ unit: 'all', status: 'all', searchQuery: '' });
+                      setActiveDeckId('deck-all');
+                      setFilterState({ deckId: 'deck-all', unit: 'all', status: 'all', searchQuery: '' });
                     }}
                     className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
                   >
-                    Reset Filters
+                    Reset All Filters
                   </button>
                   <button
                     onClick={() => setIsImportModalOpen(true)}
@@ -296,6 +445,15 @@ export const App: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {viewMode === 'mcq' && (
+          <MCQModeView
+            cards={filteredCards.length >= 4 ? filteredCards : cards}
+            soundEnabled={settings.soundEnabled}
+            onExitMCQ={() => setViewMode('study')}
+            onRecordStudy={handleRecordStudy}
+          />
         )}
 
         {viewMode === 'quiz' && (
@@ -334,11 +492,11 @@ export const App: React.FC = () => {
       {/* Footer Minimalist Status */}
       <footer className="border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 text-center text-xs text-neutral-400">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CN Memorization Engine • Ready to accumulate 200+ questions</span>
+          <span>CN Recall • 204 Comprehensive Questions & Diagrams</span>
           <div className="flex items-center gap-4 text-[11px] font-mono">
             <span>Flip: Space</span>
-            <span>Next: →</span>
-            <span>Prev: ←</span>
+            <span>Next: → / Swipe</span>
+            <span>Prev: ← / Swipe</span>
             <span>Score: 1-4</span>
           </div>
         </div>
