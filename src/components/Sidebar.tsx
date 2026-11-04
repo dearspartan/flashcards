@@ -381,8 +381,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 onClick={onToggleTheme}
-                title="Toggle Theme"
-                className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
               >
                 {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
                 <span className="text-[11px] capitalize">{theme} Mode</span>
@@ -394,7 +394,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onOpenNewCard}
               title="Add Card"
-              className="p-2 rounded-xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+              className="p-2 rounded-xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 cursor-pointer"
             >
               <IconPlus size={15} />
             </button>
@@ -402,7 +402,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onOpenImport}
               title="Import / Export"
-              className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
             >
               <IconDownload size={15} />
             </button>
@@ -410,15 +410,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onToggleSound}
               title={soundEnabled ? 'Sound Enabled' : 'Muted'}
-              className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
             >
               <IconVolume size={15} />
             </button>
 
             <button
               onClick={onToggleTheme}
-              title="Toggle Theme"
-              className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="p-2 rounded-xl text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
             >
               {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
             </button>

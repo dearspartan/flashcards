@@ -95,15 +95,32 @@ export const App: React.FC = () => {
     setDecks(loadedDecks);
   }, []);
 
-  // Sync dark class on document element
+  // Theme toggle handler with immediate DOM sync & storage save
+  const handleToggleTheme = () => {
+    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
+    const nextSettings = { ...settings, theme: nextTheme as 'dark' | 'light' };
+    setSettings(nextSettings);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    saveSettings(nextSettings);
+  };
+
+  // Sync dark class on document element & body
   useEffect(() => {
     if (settings.theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
     saveSettings(settings);
-  }, [settings]);
+  }, [settings.theme]);
 
   // Update cards state helper
   const updateCardsState = (newCards: Flashcard[]) => {
@@ -394,9 +411,7 @@ export const App: React.FC = () => {
         soundEnabled={settings.soundEnabled}
         onToggleSound={() => setSettings((s) => ({ ...s, soundEnabled: !s.soundEnabled }))}
         theme={settings.theme}
-        onToggleTheme={() =>
-          setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))
-        }
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Main Content Area */}
@@ -415,9 +430,7 @@ export const App: React.FC = () => {
           soundEnabled={settings.soundEnabled}
           onToggleSound={() => setSettings((s) => ({ ...s, soundEnabled: !s.soundEnabled }))}
           theme={settings.theme}
-          onToggleTheme={() =>
-            setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))
-          }
+          onToggleTheme={handleToggleTheme}
         />
 
         {/* Main Body Content based on View Mode */}

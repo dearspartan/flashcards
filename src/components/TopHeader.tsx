@@ -163,8 +163,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Theme Toggle */}
         <button
           onClick={onToggleTheme}
-          title="Toggle Theme"
-          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition flex items-center justify-center"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition flex items-center justify-center cursor-pointer"
         >
           {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
         </button>
