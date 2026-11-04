@@ -226,23 +226,48 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       }`}
     >
       {/* Top Header Row above card */}
-      <div className="w-full flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-neutral-700 dark:text-neutral-300 font-medium">
-            {currentIndex + 1} / {totalCards}
-          </span>
-          <span className="text-neutral-300 dark:text-neutral-700">•</span>
-          <span className="px-2 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 font-medium">
+      <div className="w-full flex items-center justify-between gap-2 text-xs text-neutral-500 dark:text-neutral-400 mb-3 px-1">
+        {/* Previous, Card Counter, Next & Topic */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Top Previous & Next Button Controller */}
+          <div className="inline-flex items-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 shadow-xs">
+            <button
+              onClick={onPrev}
+              title="Previous Card (← or H)"
+              className="px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition flex items-center gap-1 font-semibold text-xs active:scale-[0.96]"
+            >
+              <IconChevronLeft size={15} />
+              <span className="hidden sm:inline">Prev</span>
+            </button>
+
+            <span className="font-mono text-neutral-900 dark:text-neutral-100 font-bold px-2.5 text-xs select-none">
+              {currentIndex + 1} / {totalCards}
+            </span>
+
+            <button
+              onClick={onNext}
+              title="Next Card (→ or L)"
+              className="px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition flex items-center gap-1 font-semibold text-xs active:scale-[0.96]"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <IconChevronRight size={15} />
+            </button>
+          </div>
+
+          <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 font-medium text-xs shrink-0">
             Unit {card.unit}
           </span>
-          <span className="truncate max-w-[140px] sm:max-w-xs">{card.topic}</span>
+          <span className="truncate max-w-[130px] sm:max-w-xs text-neutral-600 dark:text-neutral-400 text-xs font-medium">
+            {card.topic}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right side tools */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={onToggleShuffle}
             title={isShuffled ? 'Shuffle: ON' : 'Shuffle: OFF'}
-            className={`p-1.5 rounded-md transition ${
+            className={`p-2 rounded-lg transition ${
               isShuffled
                 ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900'
                 : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
@@ -254,7 +279,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           <button
             onClick={() => onToggleStar(card.id)}
             title={card.isStarred ? 'Unstar Question' : 'Star Question for Cramming'}
-            className={`p-1.5 rounded-md transition ${
+            className={`p-2 rounded-lg transition ${
               card.isStarred
                 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
                 : 'text-neutral-400 hover:text-amber-500'
@@ -266,7 +291,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           <button
             onClick={() => onEditCard(card)}
             title="Edit Question"
-            className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+            className="p-2 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
           >
             <IconEdit size={14} />
           </button>
@@ -274,7 +299,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           <button
             onClick={() => setIsZenMode(!isZenMode)}
             title={isZenMode ? 'Exit Zen Mode (Esc/Z)' : 'Zen Focus Mode (Z)'}
-            className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+            className="p-2 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
           >
             {isZenMode ? <IconMinimize size={15} /> : <IconMaximize size={15} />}
           </button>
@@ -526,68 +551,50 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           </button>
         </div>
 
-        {/* 4 Leitner Rating Options + Navigation */}
-        <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+        {/* 4 Leitner Rating Options */}
+        <div className="grid grid-cols-4 gap-2 w-full">
           <button
-            onClick={onPrev}
-            title="Previous Card (← or H)"
-            className="p-2 sm:p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition min-h-[44px] min-w-[38px] sm:min-w-[42px] flex items-center justify-center active:scale-[0.96] shrink-0"
+            onClick={() => {
+              playSound('again', soundEnabled);
+              onRate('again');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-1 sm:px-3 rounded-xl border border-rose-200 dark:border-rose-950 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 transition min-h-[44px] active:scale-[0.97]"
           >
-            <IconChevronLeft size={16} />
+            <span className="text-xs font-semibold">Again</span>
+            <span className="text-[10px] text-rose-500 font-mono">1 • Repeat</span>
           </button>
 
-          <div className="grid grid-cols-4 gap-1 sm:gap-2 flex-1">
-            <button
-              onClick={() => {
-                playSound('again', soundEnabled);
-                onRate('again');
-              }}
-              className="flex flex-col items-center justify-center py-1 sm:py-2 px-1 rounded-xl border border-rose-200 dark:border-rose-950 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 transition min-h-[44px] active:scale-[0.97]"
-            >
-              <span className="text-[11px] sm:text-xs font-semibold">Again</span>
-              <span className="text-[9px] sm:text-[10px] text-rose-500 font-mono">1</span>
-            </button>
-
-            <button
-              onClick={() => {
-                playSound('click', soundEnabled);
-                onRate('hard');
-              }}
-              className="flex flex-col items-center justify-center py-1 sm:py-2 px-1 rounded-xl border border-amber-200 dark:border-amber-950 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 transition min-h-[44px] active:scale-[0.97]"
-            >
-              <span className="text-[11px] sm:text-xs font-semibold">Hard</span>
-              <span className="text-[9px] sm:text-[10px] text-amber-500 font-mono">2</span>
-            </button>
-
-            <button
-              onClick={() => {
-                playSound('click', soundEnabled);
-                onRate('good');
-              }}
-              className="flex flex-col items-center justify-center py-1 sm:py-2 px-1 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/60 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition min-h-[44px] active:scale-[0.97]"
-            >
-              <span className="text-[11px] sm:text-xs font-semibold">Good</span>
-              <span className="text-[9px] sm:text-[10px] text-neutral-500 font-mono">3</span>
-            </button>
-
-            <button
-              onClick={() => {
-                playSound('easy', soundEnabled);
-                onRate('easy');
-              }}
-              className="flex flex-col items-center justify-center py-1 sm:py-2 px-1 rounded-xl border border-emerald-200 dark:border-emerald-950 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 transition min-h-[44px] active:scale-[0.97]"
-            >
-              <span className="text-[11px] sm:text-xs font-semibold">Easy</span>
-              <span className="text-[9px] sm:text-[10px] text-emerald-500 font-mono">4</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              playSound('click', soundEnabled);
+              onRate('hard');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-1 sm:px-3 rounded-xl border border-amber-200 dark:border-amber-950 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 transition min-h-[44px] active:scale-[0.97]"
+          >
+            <span className="text-xs font-semibold">Hard</span>
+            <span className="text-[10px] text-amber-500 font-mono">2 • 1 day</span>
+          </button>
 
           <button
-            onClick={onNext}
-            title="Next Card (→ or L)"
-            className="p-2 sm:p-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition min-h-[44px] min-w-[38px] sm:min-w-[42px] flex items-center justify-center active:scale-[0.96] shrink-0"
+            onClick={() => {
+              playSound('click', soundEnabled);
+              onRate('good');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-1 sm:px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/60 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 transition min-h-[44px] active:scale-[0.97]"
           >
-            <IconChevronRight size={16} />
+            <span className="text-xs font-semibold">Good</span>
+            <span className="text-[10px] text-neutral-500 font-mono">3 • 3 days</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSound('easy', soundEnabled);
+              onRate('easy');
+            }}
+            className="flex flex-col items-center justify-center py-2 px-1 sm:px-3 rounded-xl border border-emerald-200 dark:border-emerald-950 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 transition min-h-[44px] active:scale-[0.97]"
+          >
+            <span className="text-xs font-semibold">Easy</span>
+            <span className="text-[10px] text-emerald-500 font-mono">4 • Mastered</span>
           </button>
         </div>
       </div>

@@ -21,7 +21,8 @@ import {
 } from './utils/storage';
 import type { UserSettings } from './utils/storage';
 import { DEFAULT_FLASHCARDS } from './data/defaultCards';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
+import { TopHeader } from './components/TopHeader';
 import { FlashcardView } from './components/FlashcardView';
 import { DeckManagerView } from './components/DeckManagerView';
 import { MCQModeView } from './components/MCQModeView';
@@ -51,6 +52,40 @@ export const App: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Flashcard | null>(null);
+
+  // Sidebar collapse states
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cn_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cn_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Keyboard shortcut to toggle sidebar ([ or \)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      if (e.key === '[' || e.key === '\\') {
+        e.preventDefault();
+        handleToggleSidebarCollapse();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Initialize cards & decks from storage
   useEffect(() => {
@@ -334,9 +369,13 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex flex-col font-sans transition-colors">
-      {/* Top App Navbar */}
-      <Navbar
+    <div className="min-h-screen min-h-[100dvh] bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex font-sans transition-colors">
+      {/* Collapsible Left Sidebar */}
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
         currentUnit={currentUnit}
         onSelectUnit={(u) => {
           setCurrentUnit(u);
@@ -360,164 +399,186 @@ export const App: React.FC = () => {
         }
       />
 
-      {/* Main Body Content based on View Mode */}
-      <main className="flex-1 flex flex-col justify-start sm:justify-center max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-3 sm:py-6 safe-pb">
-        {/* Active Deck Header Indicator */}
-        {activeDeck && activeDeck.id !== 'deck-all' && (
-          <div className="max-w-3xl mx-auto w-full mb-3 flex items-center justify-between text-xs px-2 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
-                Current Deck:
-              </span>
-              <span className="font-medium">{activeDeck.name}</span>
-              <span className="text-neutral-400">({filteredCards.length} cards)</span>
-            </div>
-            <button
-              onClick={() => setActiveDeckId('deck-all')}
-              className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 underline font-medium"
-            >
-              Reset to All Cards
-            </button>
-          </div>
-        )}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen min-h-[100dvh]">
+        {/* Slim Top Bar */}
+        <TopHeader
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebarCollapse={handleToggleSidebarCollapse}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          viewMode={viewMode}
+          currentUnit={currentUnit}
+          filterState={filterState}
+          onFilterChange={(newFilters) => setFilterState((prev) => ({ ...prev, ...newFilters }))}
+          dailyProgress={dailyProgress}
+          onOpenNewCard={handleOpenNewCard}
+          soundEnabled={settings.soundEnabled}
+          onToggleSound={() => setSettings((s) => ({ ...s, soundEnabled: !s.soundEnabled }))}
+          theme={settings.theme}
+          onToggleTheme={() =>
+            setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))
+          }
+        />
 
-        {viewMode === 'decks' && (
-          <DeckManagerView
-            decks={decks}
-            cards={cards}
-            activeDeckId={activeDeckId}
-            onSelectDeckAndStudy={handleSelectDeckAndStudy}
-            onSelectDeckAndMCQ={handleSelectDeckAndMCQ}
-            onCreateDeck={handleCreateDeck}
-            onDuplicateDeck={handleDuplicateDeck}
-            onDeleteDeck={handleDeleteDeck}
-          />
-        )}
-
-        {viewMode === 'study' && (
-          <>
-            {filteredCards.length > 0 ? (
-              <FlashcardView
-                card={filteredCards[currentIndex] || filteredCards[0]}
-                currentIndex={currentIndex}
-                totalCards={filteredCards.length}
-                onNext={handleNext}
-                onPrev={handlePrev}
-                onRate={handleRateCard}
-                onMarkKnown={handleMarkKnown}
-                onToggleStar={handleToggleStar}
-                onEditCard={handleEditCard}
-                isShuffled={settings.shuffle}
-                onToggleShuffle={() => setSettings((s) => ({ ...s, shuffle: !s.shuffle }))}
-                soundEnabled={settings.soundEnabled}
-                blurtingEnabled={settings.blurtingMode}
-                onToggleBlurting={() =>
-                  setSettings((s) => ({ ...s, blurtingMode: !s.blurtingMode }))
-                }
-              />
-            ) : (
-              <div className="text-center py-16 px-4 max-w-md mx-auto space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center mx-auto text-neutral-500">
-                  <IconLayers size={24} />
-                </div>
-                <h3 className="text-lg font-semibold">No questions match your filter</h3>
-                <p className="text-xs text-neutral-500">
-                  Try changing your search term, select "All Units", or clear the Unknown filter.
-                </p>
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setCurrentUnit('all');
-                      setActiveDeckId('deck-all');
-                      setFilterState({ deckId: 'deck-all', unit: 'all', status: 'all', searchQuery: '' });
-                    }}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                  >
-                    Reset All Filters
-                  </button>
-                  <button
-                    onClick={() => setIsImportModalOpen(true)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700"
-                  >
-                    Import Questions
-                  </button>
-                </div>
+        {/* Main Body Content based on View Mode */}
+        <main className="flex-1 flex flex-col justify-start sm:justify-center max-w-5xl w-full mx-auto px-2.5 sm:px-6 py-4 safe-pb">
+          {/* Active Deck Header Indicator */}
+          {activeDeck && activeDeck.id !== 'deck-all' && (
+            <div className="max-w-3xl mx-auto w-full mb-3 flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                  Current Deck:
+                </span>
+                <span className="font-medium">{activeDeck.name}</span>
+                <span className="text-neutral-400">({filteredCards.length} cards)</span>
               </div>
-            )}
-          </>
-        )}
+              <button
+                onClick={() => setActiveDeckId('deck-all')}
+                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 underline font-medium"
+              >
+                Reset to All Cards
+              </button>
+            </div>
+          )}
 
-        {viewMode === 'mcq' && (
-          <MCQModeView
-            cards={filteredCards.length >= 4 ? filteredCards : cards}
-            soundEnabled={settings.soundEnabled}
-            onExitMCQ={() => setViewMode('study')}
-            onRecordStudy={handleRecordStudy}
-          />
-        )}
+          {viewMode === 'decks' && (
+            <DeckManagerView
+              decks={decks}
+              cards={cards}
+              activeDeckId={activeDeckId}
+              onSelectDeckAndStudy={handleSelectDeckAndStudy}
+              onSelectDeckAndMCQ={handleSelectDeckAndMCQ}
+              onCreateDeck={handleCreateDeck}
+              onDuplicateDeck={handleDuplicateDeck}
+              onDeleteDeck={handleDeleteDeck}
+            />
+          )}
 
-        {viewMode === 'quiz' && (
-          <QuizModeView
-            cards={filteredCards.length > 0 ? filteredCards : cards}
-            currentUnit={currentUnit}
-            soundEnabled={settings.soundEnabled}
-            onExitQuiz={() => setViewMode('study')}
-            onToggleStar={handleToggleStar}
-          />
-        )}
+          {viewMode === 'study' && (
+            <>
+              {filteredCards.length > 0 ? (
+                <FlashcardView
+                  card={filteredCards[currentIndex] || filteredCards[0]}
+                  currentIndex={currentIndex}
+                  totalCards={filteredCards.length}
+                  onNext={handleNext}
+                  onPrev={handlePrev}
+                  onRate={handleRateCard}
+                  onMarkKnown={handleMarkKnown}
+                  onToggleStar={handleToggleStar}
+                  onEditCard={handleEditCard}
+                  isShuffled={settings.shuffle}
+                  onToggleShuffle={() => setSettings((s) => ({ ...s, shuffle: !s.shuffle }))}
+                  soundEnabled={settings.soundEnabled}
+                  blurtingEnabled={settings.blurtingMode}
+                  onToggleBlurting={() =>
+                    setSettings((s) => ({ ...s, blurtingMode: !s.blurtingMode }))
+                  }
+                />
+              ) : (
+                <div className="text-center py-16 px-4 max-w-md mx-auto space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center mx-auto text-neutral-500">
+                    <IconLayers size={24} />
+                  </div>
+                  <h3 className="text-lg font-semibold">No questions match your filter</h3>
+                  <p className="text-xs text-neutral-500">
+                    Try changing your search term, select "All Units", or clear the Unknown filter.
+                  </p>
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setCurrentUnit('all');
+                        setActiveDeckId('deck-all');
+                        setFilterState({ deckId: 'deck-all', unit: 'all', status: 'all', searchQuery: '' });
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                    >
+                      Reset All Filters
+                    </button>
+                    <button
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700"
+                    >
+                      Import Questions
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
-        {viewMode === 'sheet' && (
-          <CramSheetView
-            cards={filteredCards}
-            onToggleStar={handleToggleStar}
-            onEditCard={handleEditCard}
-          />
-        )}
+          {viewMode === 'mcq' && (
+            <MCQModeView
+              cards={filteredCards.length >= 4 ? filteredCards : cards}
+              soundEnabled={settings.soundEnabled}
+              onExitMCQ={() => setViewMode('study')}
+              onRecordStudy={handleRecordStudy}
+            />
+          )}
 
-        {viewMode === 'stats' && (
-          <StatsView
-            cards={cards}
-            onSelectUnitAndStudy={(unit) => {
-              setCurrentUnit(unit);
-              setViewMode('study');
-            }}
-            onStudyStarred={() => {
-              setFilterState((prev) => ({ ...prev, status: 'starred' }));
-              setViewMode('study');
-            }}
-          />
-        )}
-      </main>
+          {viewMode === 'quiz' && (
+            <QuizModeView
+              cards={filteredCards.length > 0 ? filteredCards : cards}
+              currentUnit={currentUnit}
+              soundEnabled={settings.soundEnabled}
+              onExitQuiz={() => setViewMode('study')}
+              onToggleStar={handleToggleStar}
+            />
+          )}
 
-      {/* Footer Minimalist Status */}
-      <footer className="border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 text-center text-xs text-neutral-400">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CN Recall • 204 Comprehensive Questions & Diagrams</span>
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span>Flip: Space</span>
-            <span>Next: → / Swipe</span>
-            <span>Prev: ← / Swipe</span>
-            <span>Score: 1-4</span>
+          {viewMode === 'sheet' && (
+            <CramSheetView
+              cards={filteredCards}
+              onToggleStar={handleToggleStar}
+              onEditCard={handleEditCard}
+            />
+          )}
+
+          {viewMode === 'stats' && (
+            <StatsView
+              cards={cards}
+              onSelectUnitAndStudy={(unit) => {
+                setCurrentUnit(unit);
+                setViewMode('study');
+              }}
+              onStudyStarred={() => {
+                setFilterState((prev) => ({ ...prev, status: 'starred' }));
+                setViewMode('study');
+              }}
+            />
+          )}
+        </main>
+
+        {/* Footer Minimalist Status */}
+        <footer className="border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 text-center text-xs text-neutral-400">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>CN Recall • 204 Comprehensive Questions & Diagrams</span>
+            <div className="flex items-center gap-4 text-[11px] font-mono">
+              <span className="hidden sm:inline">Sidebar: [</span>
+              <span>Flip: Space</span>
+              <span>Prev / Next: Top buttons or ←/→</span>
+              <span>Rate: 1-4</span>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
 
-      {/* Modals */}
-      <ImportExportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        cards={cards}
-        onImportCards={handleImportCards}
-        onResetDefaults={handleResetDefaults}
-      />
+        {/* Modals */}
+        <ImportExportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          cards={cards}
+          onImportCards={handleImportCards}
+          onResetDefaults={handleResetDefaults}
+        />
 
-      <CardEditorModal
-        isOpen={isEditorModalOpen}
-        onClose={() => setIsEditorModalOpen(false)}
-        cardToEdit={cardToEdit}
-        onSave={handleSaveCard}
-        onDelete={handleDeleteCard}
-      />
+        <CardEditorModal
+          isOpen={isEditorModalOpen}
+          onClose={() => setIsEditorModalOpen(false)}
+          cardToEdit={cardToEdit}
+          onSave={handleSaveCard}
+          onDelete={handleDeleteCard}
+        />
+      </div>
     </div>
   );
 };
