@@ -1,5 +1,6 @@
 import React from 'react';
-import type { ViewMode, UnitNumber, FilterState, DailyProgress } from '../types';
+import type { ViewMode, UnitNumber, FilterState, DailyProgress, SubjectId } from '../types';
+import { SUBJECTS } from '../data/subjects';
 import {
   IconMenu,
   IconSidebar,
@@ -12,6 +13,8 @@ import {
 } from './Icons';
 
 interface TopHeaderProps {
+  currentSubject: SubjectId;
+  onSelectSubject: (subject: SubjectId) => void;
   isSidebarCollapsed: boolean;
   onToggleSidebarCollapse: () => void;
   onOpenMobileSidebar: () => void;
@@ -37,6 +40,8 @@ const VIEW_TITLES: Record<ViewMode, string> = {
 };
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
+  currentSubject,
+  onSelectSubject,
   isSidebarCollapsed,
   onToggleSidebarCollapse,
   onOpenMobileSidebar,
@@ -51,15 +56,17 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   theme,
   onToggleTheme,
 }) => {
+  const subjectConfig = SUBJECTS[currentSubject] || SUBJECTS.cn;
+
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md px-3 sm:px-6 h-13 flex items-center justify-between transition-colors">
-      {/* Left side: Toggle button & Breadcrumbs */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      {/* Left side: Toggle button, Subject Switcher, Breadcrumbs */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile menu trigger */}
         <button
           onClick={onOpenMobileSidebar}
           title="Open Menu"
-          className="md:hidden p-2 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+          className="md:hidden p-2 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
         >
           <IconMenu size={18} />
         </button>
@@ -68,17 +75,44 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         <button
           onClick={onToggleSidebarCollapse}
           title={isSidebarCollapsed ? 'Expand sidebar ([)' : 'Collapse sidebar ([)'}
-          className="hidden md:flex p-2 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition items-center justify-center"
+          className="hidden md:flex p-2 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition items-center justify-center cursor-pointer"
         >
           <IconSidebar size={18} />
         </button>
 
+        {/* Quick Subject Toggle Switcher */}
+        <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-900 p-0.5 rounded-xl border border-neutral-200 dark:border-neutral-800 text-xs">
+          <button
+            onClick={() => onSelectSubject('cn')}
+            title="Switch to Computer Networks (204 Questions)"
+            className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 ${
+              currentSubject === 'cn'
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-2xs font-semibold'
+                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300'
+            }`}
+          >
+            <span>🌐</span>
+            <span className="hidden xs:inline">CN</span>
+            <span className="text-[10px] opacity-70">204</span>
+          </button>
+          <button
+            onClick={() => onSelectSubject('ai')}
+            title="Switch to Artificial Intelligence (250 Questions)"
+            className={`px-2 py-1 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 ${
+              currentSubject === 'ai'
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-2xs font-semibold'
+                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300'
+            }`}
+          >
+            <span>🤖</span>
+            <span className="hidden xs:inline">AI</span>
+            <span className="text-[10px] opacity-70">250</span>
+          </button>
+        </div>
+
         {/* Breadcrumb Info */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-neutral-900 dark:text-neutral-100 hidden sm:inline">
-            CN Recall
-          </span>
-          <span className="text-neutral-300 dark:text-neutral-700 hidden sm:inline">/</span>
+        <div className="hidden sm:flex items-center gap-2 text-xs">
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
           <span className="font-medium text-neutral-800 dark:text-neutral-200">
             {VIEW_TITLES[viewMode]}
           </span>
@@ -107,13 +141,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               type="text"
               value={filterState.searchQuery}
               onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
-              placeholder="Search cards..."
+              placeholder={`Search ${subjectConfig.shortName} cards...`}
               className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg pl-8 pr-7 py-1 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 transition"
             />
             {filterState.searchQuery && (
               <button
                 onClick={() => onFilterChange({ searchQuery: '' })}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
               >
                 <IconX size={12} />
               </button>
@@ -145,7 +179,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         <button
           onClick={onOpenNewCard}
           title="Add New Question Card"
-          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition flex items-center gap-1"
+          className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition flex items-center gap-1 cursor-pointer"
         >
           <IconPlus size={14} />
           <span className="hidden sm:inline">Add Card</span>
@@ -155,7 +189,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         <button
           onClick={onToggleSound}
           title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
-          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition hidden sm:flex items-center justify-center"
+          className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition hidden sm:flex items-center justify-center cursor-pointer"
         >
           <IconVolume size={15} />
         </button>

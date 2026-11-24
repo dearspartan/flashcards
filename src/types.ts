@@ -1,9 +1,24 @@
+export type SubjectId = 'cn' | 'ai';
+
+export interface SubjectConfig {
+  id: SubjectId;
+  name: string;
+  shortName: string;
+  code: string;
+  subtitle: string;
+  badge: string;
+  totalCards: number;
+  unitNames: Record<number, string>;
+  unitDetails: Record<number, { title: string; desc: string }>;
+}
+
 export type UnitNumber = 1 | 2 | 3 | 4 | 5;
 
 export type CardDifficulty = 'new' | 'again' | 'hard' | 'good' | 'easy';
 
 export interface Flashcard {
   id: string;
+  subject?: SubjectId;
   unit: UnitNumber;
   unitTitle: string;
   topic: string;

@@ -1,5 +1,6 @@
 import React from 'react';
-import type { UnitNumber, ViewMode, FilterState, DailyProgress } from '../types';
+import type { UnitNumber, ViewMode, FilterState, DailyProgress, SubjectId } from '../types';
+import { SUBJECTS } from '../data/subjects';
 import {
   IconBrain,
   IconSearch,
@@ -18,6 +19,8 @@ import {
 } from './Icons';
 
 interface SidebarProps {
+  currentSubject: SubjectId;
+  onSelectSubject: (subject: SubjectId) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
@@ -40,15 +43,9 @@ interface SidebarProps {
   onToggleTheme: () => void;
 }
 
-const UNIT_SHORT_NAMES: Record<number, string> = {
-  1: 'Physical Layer & Topologies',
-  2: 'Data Link Layer & MAC',
-  3: 'Network Layer & Routing',
-  4: 'Transport Layer & Congestion',
-  5: 'Application & Security',
-};
-
 export const Sidebar: React.FC<SidebarProps> = ({
+  currentSubject,
+  onSelectSubject,
   isCollapsed,
   onToggleCollapse,
   isMobileOpen,
@@ -70,6 +67,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   theme,
   onToggleTheme,
 }) => {
+  const subjectConfig = SUBJECTS[currentSubject] || SUBJECTS.cn;
+
   const goalPercentage = Math.min(
     100,
     Math.round((dailyProgress.cardsStudiedToday / (dailyProgress.dailyGoal || 20)) * 100)
@@ -97,11 +96,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onCloseMobile();
   };
 
-  // Reusable Sidebar Inner Content
   const renderSidebarContent = (collapsedMode: boolean) => (
     <div className="flex flex-col h-full justify-between select-none">
       {/* Top Section: Branding, Collapse button & Search */}
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         {/* Header: Logo & Collapse Toggle */}
         <div className={`flex items-center ${collapsedMode ? 'justify-center' : 'justify-between'} pt-1 px-1`}>
           <div className="flex items-center gap-2.5">
@@ -112,14 +110,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-sm tracking-tight text-neutral-900 dark:text-neutral-100">
-                    CN Recall
+                    {subjectConfig.shortName} Recall
                   </span>
                   <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
                     {totalCount} Qs
                   </span>
                 </div>
                 <p className="text-[10px] text-neutral-500 truncate max-w-[140px]">
-                  Computer Networks Viva
+                  {subjectConfig.code} • 5 Units
                 </p>
               </div>
             )}
@@ -128,11 +126,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={onToggleCollapse}
             title={collapsedMode ? 'Expand sidebar ([)' : 'Collapse sidebar ([)'}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition hidden md:flex items-center justify-center"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition hidden md:flex items-center justify-center cursor-pointer"
           >
             <IconSidebar size={16} />
           </button>
         </div>
+
+        {/* Subject Switcher */}
+        {!collapsedMode ? (
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs font-semibold">
+            <button
+              onClick={() => onSelectSubject('cn')}
+              className={`py-1.5 px-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                currentSubject === 'cn'
+                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-2xs'
+                  : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+              }`}
+            >
+              <span>🌐</span>
+              <span className="truncate">CN (204)</span>
+            </button>
+            <button
+              onClick={() => onSelectSubject('ai')}
+              className={`py-1.5 px-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                currentSubject === 'ai'
+                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-2xs'
+                  : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+              }`}
+            >
+              <span>🤖</span>
+              <span className="truncate">AI (250)</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <button
+              onClick={() => onSelectSubject(currentSubject === 'cn' ? 'ai' : 'cn')}
+              title={`Active: ${subjectConfig.name} (${totalCount} Qs). Click to switch subject.`}
+              className="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex flex-col items-center justify-center text-[10px] font-bold font-mono text-neutral-700 dark:text-neutral-300 hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer"
+            >
+              <span>{currentSubject === 'cn' ? '🌐' : '🤖'}</span>
+              <span>{currentSubject.toUpperCase()}</span>
+            </button>
+          </div>
+        )}
 
         {/* Search Bar */}
         {!collapsedMode ? (
@@ -145,13 +182,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="text"
               value={filterState.searchQuery}
               onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
-              placeholder="Search 204 Qs..."
+              placeholder={`Search ${totalCount} ${subjectConfig.shortName} Qs...`}
               className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg pl-8 pr-7 py-1.5 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition"
             />
             {filterState.searchQuery && (
               <button
                 onClick={() => onFilterChange({ searchQuery: '' })}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
               >
                 <IconX size={13} />
               </button>
@@ -162,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onToggleCollapse}
               title="Search Questions"
-              className="p-2 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+              className="p-2 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
             >
               <IconSearch size={16} />
             </button>
@@ -218,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.mode}
                 onClick={() => handleModeClick(item.mode)}
                 title={item.label}
-                className={`w-full flex items-center ${
+                className={`w-full flex items-center cursor-pointer ${
                   collapsedMode ? 'justify-center p-2.5' : 'justify-between px-3 py-2'
                 } rounded-xl text-xs font-medium transition ${
                   isActive
@@ -241,7 +278,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-1 pt-2 border-t border-neutral-150 dark:border-neutral-850">
           {!collapsedMode && (
             <div className="px-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold flex items-center justify-between">
-              <span>Syllabus Units</span>
+              <span>{subjectConfig.shortName} Units</span>
               <span>5 Units</span>
             </div>
           )}
@@ -256,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onCloseMobile();
               }}
               title={`Review ${unknownCount} Unknown & Difficult Cards`}
-              className={`w-full flex items-center ${
+              className={`w-full flex items-center cursor-pointer ${
                 collapsedMode ? 'justify-center p-2.5' : 'justify-between px-3 py-1.5'
               } rounded-xl text-xs font-medium transition border ${
                 filterState.status === 'unknown'
@@ -283,8 +320,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* All Units */}
           <button
             onClick={() => handleUnitClick('all')}
-            title="All Units (204 Questions)"
-            className={`w-full flex items-center ${
+            title={`All Units (${totalCount} Questions)`}
+            className={`w-full flex items-center cursor-pointer ${
               collapsedMode ? 'justify-center p-2.5' : 'justify-between px-3 py-1.5'
             } rounded-xl text-xs font-medium transition ${
               currentUnit === 'all' && filterState.status !== 'unknown'
@@ -307,12 +344,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {([1, 2, 3, 4, 5] as UnitNumber[]).map((u) => {
             const isSelected = currentUnit === u && filterState.status !== 'unknown';
             const count = unitCounts[String(u)] || 0;
+            const unitName = subjectConfig.unitNames[u] || `Unit ${u}`;
+
             return (
               <button
                 key={u}
                 onClick={() => handleUnitClick(u)}
-                title={`Unit ${u}: ${UNIT_SHORT_NAMES[u]}`}
-                className={`w-full flex items-center ${
+                title={`Unit ${u}: ${unitName}`}
+                className={`w-full flex items-center cursor-pointer ${
                   collapsedMode ? 'justify-center p-2.5' : 'justify-between px-3 py-1.5'
                 } rounded-xl text-xs font-medium transition ${
                   isSelected
@@ -326,7 +365,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                   {!collapsedMode && (
                     <span className="truncate max-w-[140px] text-left">
-                      {UNIT_SHORT_NAMES[u]}
+                      {unitName}
                     </span>
                   )}
                 </div>
@@ -351,7 +390,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onOpenNewCard();
                   onCloseMobile();
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition shadow-2xs"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-semibold hover:bg-neutral-800 dark:hover:bg-neutral-200 transition shadow-2xs cursor-pointer"
               >
                 <IconPlus size={14} />
                 <span>Add Card</span>
@@ -362,7 +401,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onOpenImport();
                   onCloseMobile();
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
               >
                 <IconDownload size={14} />
                 <span>Import</span>
@@ -373,7 +412,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 onClick={onToggleSound}
                 title={soundEnabled ? 'Mute Audio' : 'Unmute Audio'}
-                className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
               >
                 <IconVolume size={15} />
                 <span className="text-[11px]">{soundEnabled ? 'Sound On' : 'Muted'}</span>
@@ -456,11 +495,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="w-7 h-7 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 flex items-center justify-center font-bold">
                   <IconBrain size={16} />
                 </div>
-                <span className="font-semibold text-sm">CN Recall</span>
+                <span className="font-semibold text-sm">{subjectConfig.name}</span>
               </div>
               <button
                 onClick={onCloseMobile}
-                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+                className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
               >
                 <IconX size={18} />
               </button>

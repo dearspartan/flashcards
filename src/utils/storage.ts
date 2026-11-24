@@ -1,9 +1,14 @@
-import type { Flashcard, CardDifficulty, UnitNumber, Deck, DailyProgress } from '../types';
+import type { Flashcard, CardDifficulty, UnitNumber, Deck, DailyProgress, SubjectId } from '../types';
 import { DEFAULT_FLASHCARDS } from '../data/defaultCards';
+import { DEFAULT_AI_FLASHCARDS } from '../data/aiCards';
+import { SUBJECTS } from '../data/subjects';
 
-const STORAGE_KEY = 'cn_flashcards_data_v3_204';
+const CURRENT_SUBJECT_KEY = 'flashcards_active_subject_v1';
+const STORAGE_KEY_CN = 'cn_flashcards_data_v3_204';
+const STORAGE_KEY_AI = 'ai_flashcards_data_v1_250';
 const SETTINGS_KEY = 'cn_flashcards_settings_v3';
-const DECKS_KEY = 'cn_flashcards_decks_v3';
+const DECKS_KEY_CN = 'cn_flashcards_decks_v3';
+const DECKS_KEY_AI = 'ai_flashcards_decks_v1';
 const PROGRESS_KEY = 'cn_flashcards_progress_v3';
 
 export interface UserSettings {
@@ -22,34 +27,68 @@ export const DEFAULT_SETTINGS: UserSettings = {
   shuffle: false,
 };
 
-export const loadFlashcards = (): Flashcard[] => {
-  if (typeof window === 'undefined') return DEFAULT_FLASHCARDS;
+// ================= SUBJECT MANAGEMENT =================
+
+export const loadSelectedSubject = (): SubjectId => {
+  if (typeof window === 'undefined') return 'cn';
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      saveFlashcards(DEFAULT_FLASHCARDS);
-      return DEFAULT_FLASHCARDS;
-    }
-    const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed) && parsed.length >= 200) {
-      return parsed;
-    }
-    // Auto-update to full 204 if previous version was partial
-    saveFlashcards(DEFAULT_FLASHCARDS);
-    return DEFAULT_FLASHCARDS;
+    const saved = localStorage.getItem(CURRENT_SUBJECT_KEY);
+    if (saved === 'ai' || saved === 'cn') return saved;
+    return 'cn';
   } catch {
-    return DEFAULT_FLASHCARDS;
+    return 'cn';
   }
 };
 
-export const saveFlashcards = (cards: Flashcard[]) => {
+export const saveSelectedSubject = (subject: SubjectId) => {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    localStorage.setItem(CURRENT_SUBJECT_KEY, subject);
   } catch (err) {
-    console.error('Failed to save flashcards:', err);
+    console.error('Failed to save selected subject:', err);
   }
 };
+
+// ================= FLASHCARDS STORAGE =================
+
+export const loadFlashcards = (subject: SubjectId = 'cn'): Flashcard[] => {
+  if (typeof window === 'undefined') {
+    return subject === 'ai' ? DEFAULT_AI_FLASHCARDS : DEFAULT_FLASHCARDS;
+  }
+
+  const key = subject === 'ai' ? STORAGE_KEY_AI : STORAGE_KEY_CN;
+  const defaultList = subject === 'ai' ? DEFAULT_AI_FLASHCARDS : DEFAULT_FLASHCARDS;
+  const minExpected = subject === 'ai' ? 240 : 200;
+
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) {
+      saveFlashcards(defaultList, subject);
+      return defaultList;
+    }
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.length >= minExpected) {
+      return parsed;
+    }
+    // Auto-update to full master list if previous version was partial
+    saveFlashcards(defaultList, subject);
+    return defaultList;
+  } catch {
+    return defaultList;
+  }
+};
+
+export const saveFlashcards = (cards: Flashcard[], subject: SubjectId = 'cn') => {
+  if (typeof window === 'undefined') return;
+  const key = subject === 'ai' ? STORAGE_KEY_AI : STORAGE_KEY_CN;
+  try {
+    localStorage.setItem(key, JSON.stringify(cards));
+  } catch (err) {
+    console.error(`Failed to save flashcards for ${subject}:`, err);
+  }
+};
+
+// ================= USER SETTINGS =================
 
 export const loadSettings = (): UserSettings => {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -72,9 +111,75 @@ export const saveSettings = (settings: UserSettings) => {
 
 // ================= DECK MANAGEMENT =================
 
-export const getDefaultDecks = (cards: Flashcard[]): Deck[] => {
+export const getDefaultDecks = (cards: Flashcard[], subject: SubjectId = 'cn'): Deck[] => {
   const getIdsByUnit = (u: UnitNumber) => cards.filter((c) => c.unit === u).map((c) => c.id);
 
+  if (subject === 'ai') {
+    return [
+      {
+        id: 'deck-ai-all',
+        name: 'Full AI Master Deck (PCC301COM)',
+        description: 'Complete deck of 250 AI quick revision questions across Units I to V with comprehensive answers.',
+        unit: 'all',
+        cardIds: cards.map((c) => c.id),
+        folder: 'Artificial Intelligence',
+        color: '#10b981',
+        createdAt: 1700000000000,
+      },
+      {
+        id: 'deck-ai-u1',
+        name: 'Unit I: Intro to AI & Intelligent Agents',
+        description: 'Turing test, AI foundations, history, agent architectures, PEAS, rationality, and environment properties.',
+        unit: 1,
+        cardIds: getIdsByUnit(1),
+        folder: 'AI Units',
+        color: '#3b82f6',
+        createdAt: 1700000000001,
+      },
+      {
+        id: 'deck-ai-u2',
+        name: 'Unit II: Problem Solving & Search Strategies',
+        description: 'State space, Tower of Hanoi, BFS, DFS, IDS, A*, Greedy BFS, heuristics, and local search.',
+        unit: 2,
+        cardIds: getIdsByUnit(2),
+        folder: 'AI Units',
+        color: '#06b6d4',
+        createdAt: 1700000000002,
+      },
+      {
+        id: 'deck-ai-u3',
+        name: 'Unit III: Adversarial Search & Game Theory',
+        description: 'Minimax, Alpha-Beta pruning, MCTS, stochastic games, and CSPs (AC-3, N-Queens, cryptarithmetic).',
+        unit: 3,
+        cardIds: getIdsByUnit(3),
+        folder: 'AI Units',
+        color: '#8b5cf6',
+        createdAt: 1700000000003,
+      },
+      {
+        id: 'deck-ai-u4',
+        name: 'Unit IV: Knowledge Representation & Logic',
+        description: 'KB agents, propositional logic, truth tables, CNF, resolution refutation, and First-Order Logic (FOL).',
+        unit: 4,
+        cardIds: getIdsByUnit(4),
+        folder: 'AI Units',
+        color: '#f59e0b',
+        createdAt: 1700000000004,
+      },
+      {
+        id: 'deck-ai-u5',
+        name: 'Unit V: Planning & Industrial Applications',
+        description: 'Blocks world, goal stack planning, Sussman anomaly, partial-order/HTN, and real-world industrial AI.',
+        unit: 5,
+        cardIds: getIdsByUnit(5),
+        folder: 'AI Units',
+        color: '#ec4899',
+        createdAt: 1700000000005,
+      },
+    ];
+  }
+
+  // Default CN Decks
   return [
     {
       id: 'deck-all',
@@ -139,31 +244,33 @@ export const getDefaultDecks = (cards: Flashcard[]): Deck[] => {
   ];
 };
 
-export const loadDecks = (cards: Flashcard[]): Deck[] => {
-  if (typeof window === 'undefined') return getDefaultDecks(cards);
+export const loadDecks = (cards: Flashcard[], subject: SubjectId = 'cn'): Deck[] => {
+  if (typeof window === 'undefined') return getDefaultDecks(cards, subject);
+  const key = subject === 'ai' ? DECKS_KEY_AI : DECKS_KEY_CN;
   try {
-    const saved = localStorage.getItem(DECKS_KEY);
+    const saved = localStorage.getItem(key);
     if (!saved) {
-      const defaults = getDefaultDecks(cards);
-      saveDecks(defaults);
+      const defaults = getDefaultDecks(cards, subject);
+      saveDecks(defaults, subject);
       return defaults;
     }
     const parsed = JSON.parse(saved);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed;
     }
-    return getDefaultDecks(cards);
+    return getDefaultDecks(cards, subject);
   } catch {
-    return getDefaultDecks(cards);
+    return getDefaultDecks(cards, subject);
   }
 };
 
-export const saveDecks = (decks: Deck[]) => {
+export const saveDecks = (decks: Deck[], subject: SubjectId = 'cn') => {
   if (typeof window === 'undefined') return;
+  const key = subject === 'ai' ? DECKS_KEY_AI : DECKS_KEY_CN;
   try {
-    localStorage.setItem(DECKS_KEY, JSON.stringify(decks));
+    localStorage.setItem(key, JSON.stringify(decks));
   } catch (err) {
-    console.error('Failed to save decks:', err);
+    console.error(`Failed to save decks for ${subject}:`, err);
   }
 };
 
@@ -293,29 +400,35 @@ export const updateCardRepetition = (card: Flashcard, rating: CardDifficulty): F
  * 3) Delimited format:
  *    Question ::: Answer ::: Unit(1-5) ::: Topic
  */
-export const parseImportText = (rawText: string): Flashcard[] => {
+export const parseImportText = (rawText: string, currentSubject: SubjectId = 'cn'): Flashcard[] => {
   const trimmed = rawText.trim();
   if (!trimmed) return [];
+
+  const subjectConfig = SUBJECTS[currentSubject];
 
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed.map((item, idx) => ({
-          id: item.id || `custom-${Date.now()}-${idx}`,
-          unit: (Number(item.unit) >= 1 && Number(item.unit) <= 5 ? Number(item.unit) : 1) as UnitNumber,
-          unitTitle: item.unitTitle || `Unit ${item.unit || 1}`,
-          topic: item.topic || 'General',
-          question: String(item.question || item.q || '').trim(),
-          answer: String(item.answer || item.a || '').trim(),
-          keyPoints: Array.isArray(item.keyPoints) ? item.keyPoints : undefined,
-          mnemonic: item.mnemonic || undefined,
-          formula: item.formula || undefined,
-          diagram: item.diagram || undefined,
-          tags: Array.isArray(item.tags) ? item.tags : undefined,
-          difficulty: 'new' as CardDifficulty,
-          repetitions: 0,
-        })).filter((c) => c.question && c.answer);
+        return parsed.map((item, idx) => {
+          const uNum = (Number(item.unit) >= 1 && Number(item.unit) <= 5 ? Number(item.unit) : 1) as UnitNumber;
+          return {
+            id: item.id || `custom-${currentSubject}-${Date.now()}-${idx}`,
+            subject: currentSubject,
+            unit: uNum,
+            unitTitle: item.unitTitle || subjectConfig.unitNames[uNum] || `Unit ${uNum}`,
+            topic: item.topic || 'General',
+            question: String(item.question || item.q || '').trim(),
+            answer: String(item.answer || item.a || '').trim(),
+            keyPoints: Array.isArray(item.keyPoints) ? item.keyPoints : undefined,
+            mnemonic: item.mnemonic || undefined,
+            formula: item.formula || undefined,
+            diagram: item.diagram || undefined,
+            tags: Array.isArray(item.tags) ? item.tags : undefined,
+            difficulty: 'new' as CardDifficulty,
+            repetitions: 0,
+          };
+        }).filter((c) => c.question && c.answer);
       }
     } catch {
       // fallback to text parse
@@ -332,9 +445,10 @@ export const parseImportText = (rawText: string): Flashcard[] => {
         const uNum = (parts[2] ? parseInt(parts[2], 10) : 1) as UnitNumber;
         const validUnit: UnitNumber = (uNum >= 1 && uNum <= 5 ? uNum : 1);
         results.push({
-          id: `custom-${Date.now()}-${idx}`,
+          id: `custom-${currentSubject}-${Date.now()}-${idx}`,
+          subject: currentSubject,
           unit: validUnit,
-          unitTitle: `Unit ${validUnit}`,
+          unitTitle: subjectConfig.unitNames[validUnit] || `Unit ${validUnit}`,
           topic: parts[3] || 'General',
           question: parts[0],
           answer: parts[1],
@@ -358,13 +472,14 @@ export const parseImportText = (rawText: string): Flashcard[] => {
       const q = qMatch[1].trim();
       const a = aMatch[1].trim();
       const uNum = unitMatch ? (parseInt(unitMatch[1], 10) as UnitNumber) : 1;
-      const topic = topicMatch ? topicMatch[1].trim() : 'Computer Networks';
+      const topic = topicMatch ? topicMatch[1].trim() : subjectConfig.name;
 
       if (q && a) {
         results.push({
-          id: `custom-${Date.now()}-${idx}`,
+          id: `custom-${currentSubject}-${Date.now()}-${idx}`,
+          subject: currentSubject,
           unit: uNum,
-          unitTitle: `Unit ${uNum}`,
+          unitTitle: subjectConfig.unitNames[uNum] || `Unit ${uNum}`,
           topic,
           question: q,
           answer: a,

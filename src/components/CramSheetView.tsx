@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import type { Flashcard, UnitNumber } from '../types';
-import { UNIT_DETAILS } from '../data/defaultCards';
+import type { Flashcard, UnitNumber, SubjectConfig } from '../types';
+import { SUBJECTS } from '../data/subjects';
 import {
   IconChevronDown,
   IconChevronUp,
@@ -12,12 +12,14 @@ import {
 
 interface CramSheetViewProps {
   cards: Flashcard[];
+  subjectConfig?: SubjectConfig;
   onToggleStar: (id: string) => void;
   onEditCard: (card: Flashcard) => void;
 }
 
 export const CramSheetView: React.FC<CramSheetViewProps> = ({
   cards,
+  subjectConfig = SUBJECTS.cn,
   onToggleStar,
   onEditCard,
 }) => {
@@ -69,24 +71,27 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Cram Sheet & Rapid Review
+          <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+            <span>{subjectConfig.name}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full font-mono bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+              {cards.length} Cards
+            </span>
           </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Expand cards to inspect answers, or collapse to test active recall unit by unit.
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+            Cram Sheet & Rapid Review: Expand cards to inspect answers, or collapse to test active recall unit by unit.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={expandAll}
-            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
           >
             Expand All Answers
           </button>
           <button
             onClick={collapseAll}
-            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
           >
             Collapse All (Test Mode)
           </button>
@@ -99,7 +104,7 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
           const unitCards = groupedByUnit[unitNum] || [];
           if (unitCards.length === 0) return null;
 
-          const unitInfo = UNIT_DETAILS[unitNum];
+          const unitInfo = subjectConfig.unitDetails[unitNum];
 
           return (
             <section key={unitNum} className="space-y-3">
@@ -110,7 +115,7 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
                     <span className="w-5 h-5 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs flex items-center justify-center font-bold">
                       {unitNum}
                     </span>
-                    {unitInfo?.title || `Unit ${unitNum}`}
+                    {unitInfo?.title || `Unit ${unitNum}: ${subjectConfig.unitNames[unitNum]}`}
                   </h3>
                   <p className="text-xs text-neutral-500 mt-0.5">{unitInfo?.desc}</p>
                 </div>
@@ -119,50 +124,50 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
                 </span>
               </div>
 
-              {/* Cards in this unit */}
+              {/* Cards in this Unit */}
               <div className="space-y-2">
                 {unitCards.map((card, idx) => {
-                  const isOpen = !!expandedCards[card.id];
+                  const isExpanded = !!expandedCards[card.id];
                   return (
                     <div
                       key={card.id}
-                      className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden transition hover:border-neutral-300 dark:hover:border-neutral-700"
+                      className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 overflow-hidden transition shadow-2xs hover:border-neutral-300 dark:hover:border-neutral-700"
                     >
-                      {/* Question Row */}
+                      {/* Card Row Header: Question + Controls */}
                       <div
                         onClick={() => toggleExpand(card.id)}
-                        className="p-4 flex items-start justify-between gap-3 cursor-pointer select-none"
+                        className="p-3.5 flex items-start justify-between gap-3 cursor-pointer select-none"
                       >
-                        <div className="flex items-start gap-3 flex-1">
-                          <span className="text-xs font-mono text-neutral-400 mt-0.5 shrink-0">
-                            #{idx + 1}
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <span className="font-mono text-xs text-neutral-400 font-semibold shrink-0 pt-0.5">
+                            Q{idx + 1}
                           </span>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium text-neutral-900 dark:text-neutral-100 leading-snug">
+                              {card.question}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-mono text-neutral-400">
                                 {card.topic}
                               </span>
-                              {card.repetitions > 0 && (
-                                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                                  ✓ Mastered ({card.repetitions} reps)
+                              {card.isKnown && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-mono">
+                                  Known
                                 </span>
                               )}
                             </div>
-                            <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 leading-snug">
-                              {card.question}
-                            </h4>
                           </div>
                         </div>
 
-                        {/* Controls */}
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1.5 shrink-0"
-                        >
+                        {/* Actions on right */}
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => onToggleStar(card.id)}
-                            className={`p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition ${
-                              card.isStarred ? 'text-amber-500' : 'text-neutral-400'
+                            title={card.isStarred ? 'Unstar card' : 'Star card'}
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${
+                              card.isStarred
+                                ? 'text-amber-500 hover:text-amber-600'
+                                : 'text-neutral-300 hover:text-neutral-500 dark:text-neutral-600'
                             }`}
                           >
                             <IconStar size={14} filled={card.isStarred} />
@@ -170,8 +175,8 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
 
                           <button
                             onClick={() => copyToClipboard(card)}
-                            title="Copy Question & Answer"
-                            className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                            title="Copy Q&A"
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition cursor-pointer"
                           >
                             {copiedId === card.id ? (
                               <IconCheck size={14} className="text-emerald-500" />
@@ -182,44 +187,33 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
 
                           <button
                             onClick={() => onEditCard(card)}
-                            className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                            title="Edit Card"
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition cursor-pointer"
                           >
                             <IconEdit size={14} />
                           </button>
 
                           <button
                             onClick={() => toggleExpand(card.id)}
-                            className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition"
+                            title={isExpanded ? 'Collapse' : 'Expand answer'}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition cursor-pointer"
                           >
-                            {isOpen ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+                            {isExpanded ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}
                           </button>
                         </div>
                       </div>
 
-                      {/* Expanded Answer Area */}
-                      {isOpen && (
-                        <div className="px-4 pb-4 pt-2 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/40 space-y-3">
-                          <p className="text-xs sm:text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed">
-                            {card.answer}
-                          </p>
-
-                          {card.diagram && (
-                            <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-1">
-                              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 font-semibold block">
-                                📊 Concept / Topology Diagram:
-                              </span>
-                              <pre className="font-mono text-[11px] leading-tight whitespace-pre overflow-x-auto text-neutral-800 dark:text-neutral-200 py-1">
-                                {card.diagram}
-                              </pre>
-                            </div>
-                          )}
+                      {/* Expandable Answer Section */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4 pt-1 border-t border-neutral-100 dark:border-neutral-850 bg-neutral-50/50 dark:bg-neutral-900/30 text-xs text-neutral-800 dark:text-neutral-200 space-y-3">
+                          <div className="leading-relaxed whitespace-pre-line">{card.answer}</div>
 
                           {card.keyPoints && card.keyPoints.length > 0 && (
-                            <div className="space-y-1.5 pt-1">
-                              <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">
-                                Key Exam Points:
+                            <div className="p-3 rounded-lg bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-1.5">
+                              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">
+                                Key Points for Viva / Exam:
                               </span>
-                              <ul className="text-xs text-neutral-700 dark:text-neutral-300 space-y-1 pl-4 list-disc marker:text-neutral-400">
+                              <ul className="list-disc list-inside space-y-1 text-neutral-600 dark:text-neutral-300">
                                 {card.keyPoints.map((kp, kIdx) => (
                                   <li key={kIdx}>{kp}</li>
                                 ))}
@@ -228,16 +222,26 @@ export const CramSheetView: React.FC<CramSheetViewProps> = ({
                           )}
 
                           {card.formula && (
-                            <div className="p-2 rounded bg-neutral-100 dark:bg-neutral-900 text-xs font-mono text-neutral-700 dark:text-neutral-300">
-                              <span className="text-neutral-400 mr-2">Formula:</span>
+                            <div className="p-2.5 rounded-lg bg-neutral-100 dark:bg-neutral-950 font-mono text-[11px] text-amber-700 dark:text-amber-400 border border-neutral-200 dark:border-neutral-800">
+                              <span className="text-[9px] uppercase tracking-wider text-neutral-400 block mb-1">
+                                Formula:
+                              </span>
                               {card.formula}
                             </div>
                           )}
 
                           {card.mnemonic && (
-                            <div className="p-2 rounded bg-amber-50/50 dark:bg-amber-950/20 text-xs text-amber-900 dark:text-amber-200">
-                              <span className="font-semibold mr-1">Mnemonic:</span>
+                            <div className="p-2.5 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-mono text-[11px]">
+                              <span className="text-[9px] uppercase tracking-wider text-indigo-400 block mb-1">
+                                Mnemonic:
+                              </span>
                               {card.mnemonic}
+                            </div>
+                          )}
+
+                          {card.diagram && (
+                            <div className="p-3 rounded-lg bg-neutral-950 text-neutral-200 font-mono text-[10px] whitespace-pre overflow-x-auto leading-tight border border-neutral-800">
+                              {card.diagram}
                             </div>
                           )}
                         </div>

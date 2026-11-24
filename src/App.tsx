@@ -7,6 +7,7 @@ import type {
   CardDifficulty,
   Deck,
   DailyProgress,
+  SubjectId,
 } from './types';
 import {
   loadFlashcards,
@@ -18,9 +19,13 @@ import {
   saveDecks,
   loadDailyProgress,
   recordStudySession,
+  loadSelectedSubject,
+  saveSelectedSubject,
 } from './utils/storage';
 import type { UserSettings } from './utils/storage';
 import { DEFAULT_FLASHCARDS } from './data/defaultCards';
+import { DEFAULT_AI_FLASHCARDS } from './data/aiCards';
+import { SUBJECTS } from './data/subjects';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { FlashcardView } from './components/FlashcardView';
@@ -34,6 +39,7 @@ import { CardEditorModal } from './components/CardEditorModal';
 import { IconLayers } from './components/Icons';
 
 export const App: React.FC = () => {
+  const [currentSubject, setCurrentSubject] = useState<SubjectId>(() => loadSelectedSubject());
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
   const [activeDeckId, setActiveDeckId] = useState<string>('deck-all');
@@ -52,6 +58,14 @@ export const App: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
   const [cardToEdit, setCardToEdit] = useState<Flashcard | null>(null);
+
+  // Active Subject Configuration
+  const subjectConfig = useMemo(() => SUBJECTS[currentSubject] || SUBJECTS.cn, [currentSubject]);
+
+  // Update document title based on active subject
+  useEffect(() => {
+    document.title = `${subjectConfig.shortName} Recall | ${subjectConfig.name} Revision Engine`;
+  }, [subjectConfig]);
 
   // Sidebar collapse states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -87,13 +101,39 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initialize cards & decks from storage
+  // Initialize cards & decks from storage on mount
   useEffect(() => {
-    const loadedCards = loadFlashcards();
+    const initialSubject = loadSelectedSubject();
+    setCurrentSubject(initialSubject);
+    const loadedCards = loadFlashcards(initialSubject);
     setCards(loadedCards);
-    const loadedDecks = loadDecks(loadedCards);
+    const loadedDecks = loadDecks(loadedCards, initialSubject);
     setDecks(loadedDecks);
+    const defaultDeckId = initialSubject === 'ai' ? 'deck-ai-all' : 'deck-all';
+    setActiveDeckId(defaultDeckId);
+    setFilterState((prev) => ({ ...prev, deckId: defaultDeckId }));
   }, []);
+
+  // Subject Switch Handler
+  const handleSelectSubject = (nextSubject: SubjectId) => {
+    if (nextSubject === currentSubject) return;
+    saveSelectedSubject(nextSubject);
+    setCurrentSubject(nextSubject);
+    const loadedCards = loadFlashcards(nextSubject);
+    setCards(loadedCards);
+    const loadedDecks = loadDecks(loadedCards, nextSubject);
+    setDecks(loadedDecks);
+    const defaultDeckId = nextSubject === 'ai' ? 'deck-ai-all' : 'deck-all';
+    setActiveDeckId(defaultDeckId);
+    setCurrentUnit('all');
+    setFilterState({
+      deckId: defaultDeckId,
+      unit: 'all',
+      status: 'all',
+      searchQuery: '',
+    });
+    setCurrentIndex(0);
+  };
 
   // Theme toggle handler with immediate DOM sync & storage save
   const handleToggleTheme = () => {
@@ -125,13 +165,13 @@ export const App: React.FC = () => {
   // Update cards state helper
   const updateCardsState = (newCards: Flashcard[]) => {
     setCards(newCards);
-    saveFlashcards(newCards);
+    saveFlashcards(newCards, currentSubject);
   };
 
   // Update decks state helper
   const updateDecksState = (newDecks: Deck[]) => {
     setDecks(newDecks);
-    saveDecks(newDecks);
+    saveDecks(newDecks, currentSubject);
   };
 
   // Record a study interaction for daily goals and streak
@@ -150,7 +190,8 @@ export const App: React.FC = () => {
     let result = [...cards];
 
     // Restrict to active deck cards if specific deck chosen
-    if (activeDeck && activeDeck.id !== 'deck-all' && activeDeck.cardIds.length > 0) {
+    const masterDeckId = currentSubject === 'ai' ? 'deck-ai-all' : 'deck-all';
+    if (activeDeck && activeDeck.id !== masterDeckId && activeDeck.cardIds.length > 0) {
       const idSet = new Set(activeDeck.cardIds);
       result = result.filter((c) => idSet.has(c.id));
     }
@@ -195,7 +236,7 @@ export const App: React.FC = () => {
     }
 
     return result;
-  }, [cards, activeDeck, currentUnit, filterState, settings.shuffle]);
+  }, [cards, activeDeck, currentUnit, filterState, settings.shuffle, currentSubject]);
 
   // Reset index when filter changes
   useEffect(() => {
@@ -263,62 +304,64 @@ export const App: React.FC = () => {
     }
   };
 
-  // Toggle star / bookmark
+  // Toggle Star / Favorite
   const handleToggleStar = (cardId: string) => {
     const newCards = cards.map((c) => (c.id === cardId ? { ...c, isStarred: !c.isStarred } : c));
     updateCardsState(newCards);
   };
 
-  // Deck Management actions
+  // Deck Management Handlers
   const handleSelectDeckAndStudy = (deckId: string) => {
     setActiveDeckId(deckId);
+    setFilterState((prev) => ({ ...prev, deckId }));
     setCurrentUnit('all');
-    setFilterState((prev) => ({ ...prev, deckId, status: 'all' }));
     setViewMode('study');
+    setCurrentIndex(0);
   };
 
   const handleSelectDeckAndMCQ = (deckId: string) => {
     setActiveDeckId(deckId);
+    setFilterState((prev) => ({ ...prev, deckId }));
     setCurrentUnit('all');
-    setFilterState((prev) => ({ ...prev, deckId, status: 'all' }));
     setViewMode('mcq');
   };
 
   const handleCreateDeck = (newDeckData: Partial<Deck>) => {
     const newDeck: Deck = {
-      id: `custom-deck-${Date.now()}`,
+      id: `deck-${currentSubject}-${Date.now()}`,
       name: newDeckData.name || 'New Custom Deck',
       description: newDeckData.description || '',
-      folder: newDeckData.folder || 'Custom Decks',
-      unit: newDeckData.unit || 'all',
       cardIds: newDeckData.cardIds || [],
-      color: newDeckData.color || '#6366f1',
+      folder: newDeckData.folder || subjectConfig.name,
       createdAt: Date.now(),
     };
     updateDecksState([...decks, newDeck]);
   };
 
   const handleDuplicateDeck = (deckId: string) => {
-    const target = decks.find((d) => d.id === deckId);
-    if (!target) return;
+    const deck = decks.find((d) => d.id === deckId);
+    if (!deck) return;
     const duplicated: Deck = {
-      ...target,
-      id: `copy-${Date.now()}`,
-      name: `${target.name} (Copy)`,
+      ...deck,
+      id: `deck-${currentSubject}-${Date.now()}`,
+      name: `${deck.name} (Copy)`,
       createdAt: Date.now(),
     };
     updateDecksState([...decks, duplicated]);
   };
 
   const handleDeleteDeck = (deckId: string) => {
-    const filtered = decks.filter((d) => d.id !== deckId);
-    updateDecksState(filtered);
+    const masterDeckId = currentSubject === 'ai' ? 'deck-ai-all' : 'deck-all';
+    if (deckId === masterDeckId) return;
+    const newDecks = decks.filter((d) => d.id !== deckId);
+    updateDecksState(newDecks);
     if (activeDeckId === deckId) {
-      setActiveDeckId('deck-all');
+      setActiveDeckId(masterDeckId);
+      setFilterState((prev) => ({ ...prev, deckId: masterDeckId }));
     }
   };
 
-  // Card edit & creation
+  // Card Editing Handlers
   const handleOpenNewCard = () => {
     setCardToEdit(null);
     setIsEditorModalOpen(true);
@@ -336,16 +379,16 @@ export const App: React.FC = () => {
           ? ({
               ...c,
               ...cardData,
-              unitTitle: `Unit ${cardData.unit || c.unit}`,
             } as Flashcard)
           : c
       );
       updateCardsState(newCards);
     } else {
       const newCard: Flashcard = {
-        id: `card-${Date.now()}`,
+        id: `card-${currentSubject}-${Date.now()}`,
+        subject: currentSubject,
         unit: (cardData.unit || 1) as UnitNumber,
-        unitTitle: `Unit ${cardData.unit || 1}`,
+        unitTitle: subjectConfig.unitNames[(cardData.unit || 1) as UnitNumber] || `Unit ${cardData.unit || 1}`,
         topic: cardData.topic || 'General',
         question: cardData.question || '',
         answer: cardData.answer || '',
@@ -381,7 +424,8 @@ export const App: React.FC = () => {
   };
 
   const handleResetDefaults = () => {
-    updateCardsState(DEFAULT_FLASHCARDS);
+    const defaultList = currentSubject === 'ai' ? DEFAULT_AI_FLASHCARDS : DEFAULT_FLASHCARDS;
+    updateCardsState(defaultList);
     setCurrentIndex(0);
   };
 
@@ -389,6 +433,8 @@ export const App: React.FC = () => {
     <div className="min-h-screen min-h-[100dvh] bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex font-sans transition-colors">
       {/* Collapsible Left Sidebar */}
       <Sidebar
+        currentSubject={currentSubject}
+        onSelectSubject={handleSelectSubject}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebarCollapse}
         isMobileOpen={isMobileSidebarOpen}
@@ -418,6 +464,8 @@ export const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen min-h-[100dvh]">
         {/* Slim Top Bar */}
         <TopHeader
+          currentSubject={currentSubject}
+          onSelectSubject={handleSelectSubject}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebarCollapse={handleToggleSidebarCollapse}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
@@ -436,7 +484,7 @@ export const App: React.FC = () => {
         {/* Main Body Content based on View Mode */}
         <main className="flex-1 flex flex-col justify-start sm:justify-center max-w-5xl w-full mx-auto px-2.5 sm:px-6 py-4 safe-pb">
           {/* Active Deck Header Indicator */}
-          {activeDeck && activeDeck.id !== 'deck-all' && (
+          {activeDeck && activeDeck.id !== (currentSubject === 'ai' ? 'deck-ai-all' : 'deck-all') && (
             <div className="max-w-3xl mx-auto w-full mb-3 flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">
@@ -446,8 +494,8 @@ export const App: React.FC = () => {
                 <span className="text-neutral-400">({filteredCards.length} cards)</span>
               </div>
               <button
-                onClick={() => setActiveDeckId('deck-all')}
-                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 underline font-medium"
+                onClick={() => setActiveDeckId(currentSubject === 'ai' ? 'deck-ai-all' : 'deck-all')}
+                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 underline font-medium cursor-pointer"
               >
                 Reset to All Cards
               </button>
@@ -500,17 +548,18 @@ export const App: React.FC = () => {
                   <div className="flex items-center justify-center gap-3 pt-2">
                     <button
                       onClick={() => {
+                        const defaultDeck = currentSubject === 'ai' ? 'deck-ai-all' : 'deck-all';
                         setCurrentUnit('all');
-                        setActiveDeckId('deck-all');
-                        setFilterState({ deckId: 'deck-all', unit: 'all', status: 'all', searchQuery: '' });
+                        setActiveDeckId(defaultDeck);
+                        setFilterState({ deckId: defaultDeck, unit: 'all', status: 'all', searchQuery: '' });
                       }}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900"
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 cursor-pointer"
                     >
                       Reset All Filters
                     </button>
                     <button
                       onClick={() => setIsImportModalOpen(true)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700"
+                      className="px-4 py-2 rounded-xl text-xs font-semibold border border-neutral-300 dark:border-neutral-700 cursor-pointer"
                     >
                       Import Questions
                     </button>
@@ -542,6 +591,7 @@ export const App: React.FC = () => {
           {viewMode === 'sheet' && (
             <CramSheetView
               cards={filteredCards}
+              subjectConfig={subjectConfig}
               onToggleStar={handleToggleStar}
               onEditCard={handleEditCard}
             />
@@ -550,6 +600,7 @@ export const App: React.FC = () => {
           {viewMode === 'stats' && (
             <StatsView
               cards={cards}
+              subjectConfig={subjectConfig}
               onSelectUnitAndStudy={(unit) => {
                 setCurrentUnit(unit);
                 setViewMode('study');
@@ -565,7 +616,9 @@ export const App: React.FC = () => {
         {/* Footer Minimalist Status */}
         <footer className="border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 text-center text-xs text-neutral-400">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span>CN Recall • 204 Comprehensive Questions & Diagrams</span>
+            <span>
+              {subjectConfig.name} ({subjectConfig.code}) • {cards.length} Questions & Answers
+            </span>
             <div className="flex items-center gap-4 text-[11px] font-mono">
               <span className="hidden sm:inline">Sidebar: [</span>
               <span>Flip: Space</span>
@@ -580,14 +633,20 @@ export const App: React.FC = () => {
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
           cards={cards}
+          currentSubject={currentSubject}
           onImportCards={handleImportCards}
           onResetDefaults={handleResetDefaults}
         />
 
         <CardEditorModal
           isOpen={isEditorModalOpen}
-          onClose={() => setIsEditorModalOpen(false)}
+          onClose={() => {
+            setIsEditorModalOpen(false);
+            setCardToEdit(null);
+          }}
           cardToEdit={cardToEdit}
+          currentSubject={currentSubject}
+          subjectConfig={subjectConfig}
           onSave={handleSaveCard}
           onDelete={handleDeleteCard}
         />
@@ -597,3 +656,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
